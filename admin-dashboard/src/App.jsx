@@ -1,8 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
-import Accesschoice from "./pages/Access/Accesschoice";
-import DeliveryAccess from "./pages/Access/DeliveryAccess";
-import PickupAccess from "./pages/Access/PickupAccess";
 import Dashboard from "./pages/Dashboard";
 import LockersPage from "./pages/LockersPage";
 import ResidentsPage from "./pages/ResidentsPage";
@@ -23,9 +20,8 @@ export default function App() {
       <Route path="/events" element={<EventsPage />} />
       <Route path="/settings" element={<Settings />} />
 
-      <Route path="/access" element={<Accesschoice />} />
-      <Route path="/access/delivery" element={<DeliveryAccess />} />
-      <Route path="/access/pickup" element={<PickupAccess />} />
+      <Route path="/settings" element={<Settings />} />
+
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

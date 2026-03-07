@@ -15,24 +15,108 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Get all apartments
+router.get("/", async (req, res) => {
+  try {
+    const apartments = await Apartment.find();
+    res.status(200).json(apartments);
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// --- LOCKER MANAGEMENT ---
+
+// Get all lockers
+router.get("/lockers", async (req, res) => {
+  try {
+    const lockers = await Locker.find();
+    res.status(200).json(lockers);
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Add a new locker
+router.post("/locker", async (req, res) => {
+  try {
+    const { lockerId } = req.body;
+    const newLocker = new Locker({ lockerId, isFree: true });
+    await newLocker.save();
+    res.status(201).json({ success: true, message: "Locker added" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error or duplicate ID" });
+  }
+});
+
+// Update Locker Status (Reset)
+router.put("/locker/reset", async (req, res) => {
+  try {
+    const { lockerId } = req.body;
+    const locker = await Locker.findOne({ lockerId });
+    if (!locker) return res.status(404).json({ success: false });
+
+    locker.isFree = true;
+    await locker.save();
+    res.status(200).json({ success: true, message: "Locker reset successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Register a new Apartment (Resident)
+router.post("/register", async (req, res) => {
+  try {
+    console.log("Register Request Body:", req.body);
+    const { apartmentId, nameOfOwner, gmail } = req.body;
+
+    const existing = await Apartment.findOne({ apartmentId });
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Apartment ID already exists" });
+    }
+
+    const newApartment = new Apartment({
+      apartmentId,
+      nameOfOwner,
+      gmail,
+    });
+
+    await newApartment.save();
+    res.status(201).json({ success: true, message: "Resident added successfully" });
+  } catch (error) {
+    console.error("Register error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 router.post("/delivery", async (req, res) => {
   try {
     const { apartmentId } = req.body;
+    console.log(`[Delivery] Request for Apt: ${apartmentId}`);
 
     // 1. Check if Apartment exists
     const apartment = await Apartment.findOne({ apartmentId });
     if (!apartment) {
+      console.log(`[Delivery] Apartment ${apartmentId} not found`);
       return res.status(404).json({ success: false, message: "Apartment not found" });
     }
 
     // 2. Find an available locker
+    const allLockers = await Locker.find();
+    console.log(`[Delivery] Total Lockers in DB: ${allLockers.length}`);
+
     const freeLocker = await Locker.findOne({ isFree: true });
     if (!freeLocker) {
+      console.log("[Delivery] No free lockers found");
       return res.status(400).json({ success: false, message: "No lockers available" });
     }
+    console.log(`[Delivery] Found free locker: ${freeLocker.lockerId}`);
 
     // 3. Generate 6-digit OTP
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log("********************************");
+    console.log("GENERATED OTP FOR PICKUP:", generatedOtp);
+    console.log("********************************");
 
     // 4. Save the Delivery Log
     const newLog = new DeliveryLog({
@@ -47,14 +131,19 @@ router.post("/delivery", async (req, res) => {
     await freeLocker.save();
 
     // 6. Send Email
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: apartment.gmail,
-      subject: "Package Delivery Notification",
-      text: `Hello ${apartment.nameOfOwner}, a delivery has been placed in locker ${freeLocker.lockerId}. Your OTP is: ${generatedOtp}`,
-    };
+    try {
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: apartment.gmail,
+        subject: "Package Delivery Notification",
+        text: `Hello ${apartment.nameOfOwner}, a delivery has been placed in locker ${freeLocker.lockerId}. Your OTP is: ${generatedOtp}`,
+      };
 
-    await transporter.sendMail(mailOptions);
+      await transporter.sendMail(mailOptions);
+    } catch (emailError) {
+      console.error("Email failed to send (CHECK .ENV CREDENTIALS):", emailError.message);
+      // Continue execution - do not fail the request just because email failed
+    }
 
     return res.status(200).json({
       success: true,
@@ -77,16 +166,16 @@ router.post("/pickup", async (req, res) => {
     const { apartmentId, passcode } = req.body; // passcode is the OTP from the email
 
     // 1. Find the active delivery log matching ID and OTP
-    const activeDelivery = await DeliveryLog.findOne({ 
-      apartmentId, 
-      otp: passcode, 
-      isPickedUp: false 
+    const activeDelivery = await DeliveryLog.findOne({
+      apartmentId,
+      otp: passcode,
+      isPickedUp: false
     });
 
     if (!activeDelivery) {
-      return res.status(401).json({ 
-        success: false, 
-        message: "Invalid Apartment ID or Passcode" 
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Apartment ID or Passcode"
       });
     }
 
@@ -116,9 +205,9 @@ router.post("/pickup", async (req, res) => {
       text: `Hello ${apartment.nameOfOwner}, your package in locker ${activeDelivery.lockerId} has been successfully collected.`
     });
 
-    return res.status(200).json({ 
-      success: true, 
-      message: "Locker Unlocked! Please collect your package." 
+    return res.status(200).json({
+      success: true,
+      message: "Locker Unlocked! Please collect your package."
     });
 
   } catch (error) {
