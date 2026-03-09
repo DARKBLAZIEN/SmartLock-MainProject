@@ -3,7 +3,8 @@ import { Package, Smartphone, AlertOctagon, TrendingUp } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import StatCard from '../components/StatCard';
 import ActivityFeed from '../components/ActivityFeed';
-import { getDashboardStats, getRecentActivity } from '../mock/mockBackend';
+import { activityApi } from '../api/activity.api';
+import { lockerApi } from '../api/locker.api';
 import Loader from '../components/Loader';
 
 const Dashboard = () => {
@@ -15,8 +16,8 @@ const Dashboard = () => {
         const fetchData = async () => {
             try {
                 const [statsData, activityData] = await Promise.all([
-                    getDashboardStats(),
-                    getRecentActivity()
+                    activityApi.getStats(),
+                    activityApi.getRecent()
                 ]);
                 setStats(statsData);
                 setActivities(activityData);

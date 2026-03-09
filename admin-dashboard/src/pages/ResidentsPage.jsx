@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Mail, MoreVertical, Shield } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
-import { getResidents } from '../mock/mockBackend';
+import { residentApi } from '../api/resident.api';
 import Loader from '../components/Loader';
 
 const ResidentsPage = () => {
@@ -12,11 +12,10 @@ const ResidentsPage = () => {
 
     const fetchResidents = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/apartment');
-            const data = await res.json();
+            const data = await residentApi.getAll();
             setResidents(data);
         } catch (error) {
-            console.error(error);
+            console.error('Failed to fetch residents:', error);
         } finally {
             setLoading(false);
         }
@@ -29,24 +28,16 @@ const ResidentsPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('http://localhost:5000/api/apartment/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    nameOfOwner: formData.nameOfOwner,
-                    gmail: formData.email,
-                    apartmentId: formData.apartmentId
-                })
+            await residentApi.register({
+                nameOfOwner: formData.nameOfOwner,
+                gmail: formData.email,
+                apartmentId: formData.apartmentId
             });
-            if (res.ok) {
-                setIsModalOpen(false);
-                setFormData({ nameOfOwner: '', email: '', apartmentId: '' });
-                fetchResidents();
-            } else {
-                alert('Output Failed');
-            }
+            setIsModalOpen(false);
+            setFormData({ nameOfOwner: '', email: '', apartmentId: '' });
+            fetchResidents();
         } catch (error) {
-            alert('Error adding resident');
+            alert('Error adding resident: ' + error.message);
         }
     };
 

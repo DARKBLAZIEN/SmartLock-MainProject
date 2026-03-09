@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshCw, Unlock, RotateCcw, Plus, AlertTriangle } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
-import { getLockers, forceOpenLocker, resetLocker, addLocker } from '../mock/mockBackend';
+import { lockerApi } from '../api/locker.api';
 import Loader from '../components/Loader';
 import Modal from '../components/Modal';
 
@@ -20,17 +20,11 @@ const LockersPage = () => {
         const fetchCheck = async () => {
             setLoading(true);
             try {
-                const res = await fetch('http://localhost:5000/api/apartment/lockers');
-                const data = await res.json();
-                // Map mongo _id to id for UI compatibility if needed, though data usually comes as is.
-                // Assuming backend returns array of objects with lockerId
-                setLockers(data.map(l => ({
-                    id: l.lockerId,
-                    status: l.isFree ? 'AVAILABLE' : 'OCCUPIED',
-                    door: 'CLOSED' // Database doesn't track door state yet, assuming closed
-                })));
+                const data = await lockerApi.getStatus();
+                setLockers(data);
             } catch (e) {
-                console.error(e);
+                console.error('Failed to fetch lockers:', e);
+                setError('Failed to load lockers');
             }
             setLoading(false);
         };
@@ -47,19 +41,9 @@ const LockersPage = () => {
 
         try {
             if (type === 'reset' || type === 'open') {
-                // For now, both Open and Reset will trigger the Reset endpoint to free the locker
-                const res = await fetch('http://localhost:5000/api/apartment/locker/reset', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lockerId: id })
-                });
-
-                if (res.ok) {
-                    setRefreshKey(k => k + 1);
-                    setConfirmAction({ isOpen: false, type: null, id: null });
-                } else {
-                    setError('Failed to reset locker');
-                }
+                await lockerApi.reset(id);
+                setRefreshKey(k => k + 1);
+                setConfirmAction({ isOpen: false, type: null, id: null });
             }
         } catch (e) {
             setError('Action failed: ' + e.message);
@@ -71,20 +55,11 @@ const LockersPage = () => {
         if (!newLockerId.trim()) return;
 
         try {
-            const res = await fetch('http://localhost:5000/api/apartment/locker', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ lockerId: newLockerId })
-            });
-
-            if (res.ok) {
-                setRefreshKey(k => k + 1);
-                setIsAddModalOpen(false);
-                setNewLockerId('');
-                setError(null);
-            } else {
-                setError('Failed to add locker (ID might exist)');
-            }
+            await lockerApi.createLocker(newLockerId);
+            setRefreshKey(k => k + 1);
+            setIsAddModalOpen(false);
+            setNewLockerId('');
+            setError(null);
         } catch (error) {
             setError(error.message);
         }

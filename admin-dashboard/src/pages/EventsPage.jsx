@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Filter, Calendar } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
-import { getRecentActivity } from '../mock/mockBackend';
+import { activityApi } from '../api/activity.api';
 import Loader from '../components/Loader';
 
 const EventsPage = () => {
@@ -9,8 +9,11 @@ const EventsPage = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getRecentActivity().then(data => {
+        activityApi.getRecent().then(data => {
             setEvents(data);
+            setLoading(false);
+        }).catch(err => {
+            console.error('Failed to fetch events:', err);
             setLoading(false);
         });
     }, []);

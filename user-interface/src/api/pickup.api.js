@@ -1,10 +1,10 @@
-import { verifyPickup } from '../mock/mockBackend';
+import apiClient from './apiClient';
 
 export const pickupApi = {
     verify: async (apartmentId, otp) => {
         try {
-            const response = await verifyPickup(apartmentId, otp);
-            return response;
+            const response = await apiClient.post('/apartment/pickup', { apartmentId, passcode: otp });
+            return response.data;
         } catch (error) {
             throw error;
         }
