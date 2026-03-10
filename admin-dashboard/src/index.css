@@ -33,6 +33,7 @@
 
 /* ─── DARK MODE OVERRIDES ─── */
 html.dark {
+  color-scheme: dark;
   --color-bg-page: #0f172a;
   /* slate-900: deep navy, not pure black */
   --color-bg-surface: #1e293b;

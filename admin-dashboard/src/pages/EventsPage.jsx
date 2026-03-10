@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Filter, Calendar } from 'lucide-react';
+import { Filter, Calendar, Clock } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { getRecentActivity } from '../mock/mockBackend';
 import Loader from '../components/Loader';
@@ -23,6 +23,28 @@ const EventsPage = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const { searchQuery } = React.useContext(SearchContext);
+    const [filterType, setFilterType] = useState('ALL');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+    const dropdownRef = React.useRef(null);
+    const [startTime, setStartTime] = useState('');
+    const [endTime, setEndTime] = useState('');
+    const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
+    const timeDropdownRef = React.useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDateDropdownOpen(false);
+            }
+            if (timeDropdownRef.current && !timeDropdownRef.current.contains(event.target)) {
+                setIsTimeDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     useEffect(() => {
         getRecentActivity().then(data => {
@@ -34,6 +56,57 @@ const EventsPage = () => {
     if (loading) return <AdminLayout title="Events Log"><Loader /></AdminLayout>;
 
     const filteredEvents = events.filter(log => {
+        // 1. Type filter logic
+        if (filterType !== 'ALL' && log.type !== filterType) {
+            return false;
+        }
+
+        // 2. Custom Date range logic
+        if (startDate || endDate) {
+            const logDate = new Date(log.timestamp);
+            logDate.setHours(0, 0, 0, 0);
+
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                if (logDate.getTime() < start.getTime()) return false;
+            }
+
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(0, 0, 0, 0);
+                if (logDate.getTime() > end.getTime()) return false;
+            }
+        }
+
+        // 3. Custom Time range logic
+        if (startTime || endTime) {
+            const logDate = new Date(log.timestamp);
+            const logMinutes = logDate.getHours() * 60 + logDate.getMinutes();
+
+            let startMins = 0;
+            let endMins = 24 * 60;
+
+            if (startTime) {
+                const [startH, startM] = startTime.split(':').map(Number);
+                startMins = startH * 60 + startM;
+            }
+            if (endTime) {
+                const [endH, endM] = endTime.split(':').map(Number);
+                endMins = endH * 60 + endM;
+            }
+
+            if (startTime && endTime && startMins > endMins) {
+                // Time range crosses midnight (e.g., 23:00 to 02:00)
+                if (logMinutes < startMins && logMinutes > endMins) return false;
+            } else {
+                // Normal same-day time range
+                if (startTime && logMinutes < startMins) return false;
+                if (endTime && logMinutes > endMins) return false;
+            }
+        }
+
+        // 4. Search query logic
         if (!searchQuery) return true;
         const query = searchQuery.toLowerCase();
 
@@ -53,31 +126,142 @@ const EventsPage = () => {
         <AdminLayout title="System Events">
             <div className="rounded-2xl overflow-hidden transition-colors duration-200" style={surface}>
                 {/* Filter Bar */}
-                <div className="p-4 flex gap-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <button
-                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
-                        style={{
-                            color: 'var(--color-text-muted)',
-                            backgroundColor: 'var(--color-bg-surface2)',
-                            border: '1px solid var(--color-border-md)'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-surface2)'}
-                    >
-                        <Filter className="h-3 w-3" /> Filter Type
-                    </button>
-                    <button
-                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
-                        style={{
-                            color: 'var(--color-text-muted)',
-                            backgroundColor: 'var(--color-bg-surface2)',
-                            border: '1px solid var(--color-border-md)'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-surface2)'}
-                    >
-                        <Calendar className="h-3 w-3" /> Date Range
-                    </button>
+                <div className="p-4 flex gap-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <div className="relative flex items-center">
+                        <Filter className="absolute left-3 h-3 w-3 pointer-events-none" style={{ color: 'var(--color-text-muted)' }} />
+                        <select
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value)}
+                            className="pl-8 pr-8 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer outline-none appearance-none"
+                            style={{
+                                color: 'var(--color-text-primary)',
+                                backgroundColor: 'var(--color-bg-surface2)',
+                                border: '1px solid var(--color-border-md)'
+                            }}
+                        >
+                            <option value="ALL">All Types</option>
+                            <option value="DELIVERY">Delivery</option>
+                            <option value="PICKUP">Pickup</option>
+                            <option value="ADMIN_OVERRIDE">Admin Override</option>
+                        </select>
+                    </div>
+
+                    <div className="relative flex items-center" ref={dropdownRef}>
+                        <button
+                            onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+                            style={{
+                                color: 'var(--color-text-primary)',
+                                backgroundColor: isDateDropdownOpen ? 'var(--color-border)' : 'var(--color-bg-surface2)',
+                                border: '1px solid var(--color-border-md)'
+                            }}
+                            onMouseEnter={e => !isDateDropdownOpen && (e.currentTarget.style.backgroundColor = 'var(--color-border)')}
+                            onMouseLeave={e => !isDateDropdownOpen && (e.currentTarget.style.backgroundColor = 'var(--color-bg-surface2)')}
+                        >
+                            <Calendar className="h-3 w-3" /> Date Range
+                        </button>
+
+                        {isDateDropdownOpen && (
+                            <div className="absolute top-full mt-2 left-0 p-3 rounded-xl flex flex-col gap-3 shadow-lg z-50 min-w-max" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)' }}>
+                                <div className="flex items-center gap-2 justify-between">
+                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>From</span>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="px-2 py-1 text-xs font-medium rounded-md outline-none"
+                                        style={{
+                                            color: 'var(--color-text-primary)',
+                                            backgroundColor: 'var(--color-bg-surface2)',
+                                            border: '1px solid var(--color-border-md)'
+                                        }}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 justify-between">
+                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>To</span>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        min={startDate}
+                                        className="px-2 py-1 text-xs font-medium rounded-md outline-none"
+                                        style={{
+                                            color: 'var(--color-text-primary)',
+                                            backgroundColor: 'var(--color-bg-surface2)',
+                                            border: '1px solid var(--color-border-md)'
+                                        }}
+                                    />
+                                </div>
+                                {(startDate || endDate) && (
+                                    <button
+                                        onClick={() => { setStartDate(''); setEndDate(''); setIsDateDropdownOpen(false); }}
+                                        className="text-xs py-1.5 w-full text-center rounded-lg hover:underline transition-all"
+                                        style={{ color: 'var(--color-text-subtle)', backgroundColor: 'var(--color-bg-surface2)' }}
+                                    >
+                                        Clear Dates
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="relative flex items-center" ref={timeDropdownRef}>
+                        <button
+                            onClick={() => setIsTimeDropdownOpen(!isTimeDropdownOpen)}
+                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+                            style={{
+                                color: 'var(--color-text-primary)',
+                                backgroundColor: isTimeDropdownOpen ? 'var(--color-border)' : 'var(--color-bg-surface2)',
+                                border: '1px solid var(--color-border-md)'
+                            }}
+                            onMouseEnter={e => !isTimeDropdownOpen && (e.currentTarget.style.backgroundColor = 'var(--color-border)')}
+                            onMouseLeave={e => !isTimeDropdownOpen && (e.currentTarget.style.backgroundColor = 'var(--color-bg-surface2)')}
+                        >
+                            <Clock className="h-3 w-3" /> Time Range
+                        </button>
+
+                        {isTimeDropdownOpen && (
+                            <div className="absolute top-full mt-2 left-0 p-3 rounded-xl flex flex-col gap-3 shadow-lg z-50 min-w-max" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)' }}>
+                                <div className="flex items-center gap-2 justify-between">
+                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>From</span>
+                                    <input
+                                        type="time"
+                                        value={startTime}
+                                        onChange={(e) => setStartTime(e.target.value)}
+                                        className="px-2 py-1 text-xs font-medium rounded-md outline-none"
+                                        style={{
+                                            color: 'var(--color-text-primary)',
+                                            backgroundColor: 'var(--color-bg-surface2)',
+                                            border: '1px solid var(--color-border-md)'
+                                        }}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 justify-between">
+                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>To</span>
+                                    <input
+                                        type="time"
+                                        value={endTime}
+                                        onChange={(e) => setEndTime(e.target.value)}
+                                        className="px-2 py-1 text-xs font-medium rounded-md outline-none"
+                                        style={{
+                                            color: 'var(--color-text-primary)',
+                                            backgroundColor: 'var(--color-bg-surface2)',
+                                            border: '1px solid var(--color-border-md)'
+                                        }}
+                                    />
+                                </div>
+                                {(startTime || endTime) && (
+                                    <button
+                                        onClick={() => { setStartTime(''); setEndTime(''); setIsTimeDropdownOpen(false); }}
+                                        className="text-xs py-1.5 w-full text-center rounded-lg hover:underline transition-all"
+                                        style={{ color: 'var(--color-text-subtle)', backgroundColor: 'var(--color-bg-surface2)' }}
+                                    >
+                                        Clear Times
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Table */}
