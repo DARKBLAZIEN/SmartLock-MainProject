@@ -117,7 +117,8 @@ const LockersPage = () => {
                 {lockers.filter(locker => {
                     if (!searchQuery) return true;
                     const query = searchQuery.toLowerCase();
-                    return locker.id.toLowerCase().includes(query) || locker.status.toLowerCase().includes(query);
+                    const displayStatus = locker.status === 'AVAILABLE' ? 'ready for use' : 'occupied';
+                    return locker.id.toLowerCase().includes(query) || locker.status.toLowerCase().includes(query) || displayStatus.includes(query);
                 }).map((locker) => (
                     <div key={locker.id} className="relative group bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all">
                         <div className={`absolute top-0 left-6 right-6 h-1 rounded-b-lg
