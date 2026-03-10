@@ -5,11 +5,13 @@ import StatCard from '../components/StatCard';
 import ActivityFeed from '../components/ActivityFeed';
 import { getDashboardStats, getRecentActivity } from '../mock/mockBackend';
 import Loader from '../components/Loader';
+import { SearchContext } from '../contexts/SearchContext';
 
 const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({});
     const [activities, setActivities] = useState([]);
+    const { searchQuery } = React.useContext(SearchContext);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -30,6 +32,22 @@ const Dashboard = () => {
     }, []);
 
     if (loading) return <AdminLayout title="Overview"><Loader text="Loading Dashboard..." /></AdminLayout>;
+
+    const filteredActivities = activities.filter(activity => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+
+        const timeStr = new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase();
+        const dateStr = new Date(activity.timestamp).toLocaleDateString().toLowerCase();
+
+        return (
+            activity.type?.toLowerCase().includes(query) ||
+            activity.description?.toLowerCase().includes(query) ||
+            (activity.lockerId && activity.lockerId.toLowerCase().includes(query)) ||
+            timeStr.includes(query) ||
+            dateStr.includes(query)
+        );
+    });
 
     return (
         <AdminLayout title="Overview">
@@ -95,7 +113,7 @@ const Dashboard = () => {
 
                 {/* Activity Feed */}
                 <div className="lg:col-span-1">
-                    <ActivityFeed activities={activities} />
+                    <ActivityFeed activities={filteredActivities} />
                 </div>
             </div>
         </AdminLayout>

@@ -3,6 +3,7 @@ import { Mail, MoreVertical, Edit, Trash2, X } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { getResidents } from '../mock/mockBackend';
 import Loader from '../components/Loader';
+import { SearchContext } from '../contexts/SearchContext';
 
 // Inline style helpers using CSS variables
 const surface = {
@@ -27,6 +28,7 @@ const ResidentsPage = () => {
     const [editId, setEditId] = useState(null);
     const [activeMenu, setActiveMenu] = useState(null);
     const [formData, setFormData] = useState({ nameOfOwner: '', email: '', apartmentId: '' });
+    const { searchQuery } = React.useContext(SearchContext);
 
     const fetchResidents = async () => {
         try {
@@ -114,6 +116,16 @@ const ResidentsPage = () => {
         setIsModalOpen(true);
     };
 
+    const filteredResidents = residents.filter(user => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            user.nameOfOwner?.toLowerCase().includes(query) ||
+            user.gmail?.toLowerCase().includes(query) ||
+            user.apartmentId?.toString().toLowerCase().includes(query)
+        );
+    });
+
     if (loading) return <AdminLayout title="Residents"><Loader /></AdminLayout>;
 
     return (
@@ -192,7 +204,7 @@ const ResidentsPage = () => {
                         </tr>
                     </thead>
                     <tbody className="text-sm">
-                        {residents.map((user, idx) => (
+                        {filteredResidents.map((user, idx) => (
                             <tr
                                 key={user._id}
                                 style={{ borderBottom: '1px solid var(--color-border)' }}
@@ -258,7 +270,7 @@ const ResidentsPage = () => {
                         ))}
                     </tbody>
                 </table>
-                {residents.length === 0 && (
+                {filteredResidents.length === 0 && (
                     <div className="p-12 text-center" style={{ color: 'var(--color-text-subtle)' }}>
                         No residents found.
                     </div>

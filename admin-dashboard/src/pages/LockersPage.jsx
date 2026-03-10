@@ -4,6 +4,7 @@ import AdminLayout from '../components/AdminLayout';
 import { getLockers, forceOpenLocker, resetLocker, addLocker } from '../mock/mockBackend';
 import Loader from '../components/Loader';
 import Modal from '../components/Modal';
+import { SearchContext } from '../contexts/SearchContext';
 
 const LockersPage = () => {
     const [lockers, setLockers] = useState([]);
@@ -15,6 +16,7 @@ const LockersPage = () => {
     const [newLockerId, setNewLockerId] = useState('');
     const [confirmAction, setConfirmAction] = useState({ isOpen: false, type: null, id: null });
     const [error, setError] = useState(null);
+    const { searchQuery } = React.useContext(SearchContext);
 
     useEffect(() => {
         const fetchCheck = async () => {
@@ -112,7 +114,11 @@ const LockersPage = () => {
 
             {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {lockers.map((locker) => (
+                {lockers.filter(locker => {
+                    if (!searchQuery) return true;
+                    const query = searchQuery.toLowerCase();
+                    return locker.id.toLowerCase().includes(query) || locker.status.toLowerCase().includes(query);
+                }).map((locker) => (
                     <div key={locker.id} className="relative group bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all">
                         <div className={`absolute top-0 left-6 right-6 h-1 rounded-b-lg
                   ${locker.status === 'AVAILABLE' ? 'bg-green-500' : 'bg-red-500'}

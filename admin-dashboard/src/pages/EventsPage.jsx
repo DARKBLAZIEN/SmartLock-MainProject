@@ -3,6 +3,7 @@ import { Filter, Calendar } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { getRecentActivity } from '../mock/mockBackend';
 import Loader from '../components/Loader';
+import { SearchContext } from '../contexts/SearchContext';
 
 const surface = {
     backgroundColor: 'var(--color-bg-surface)',
@@ -21,6 +22,7 @@ const getTypeBadgeStyle = (type) => {
 const EventsPage = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { searchQuery } = React.useContext(SearchContext);
 
     useEffect(() => {
         getRecentActivity().then(data => {
@@ -30,6 +32,22 @@ const EventsPage = () => {
     }, []);
 
     if (loading) return <AdminLayout title="Events Log"><Loader /></AdminLayout>;
+
+    const filteredEvents = events.filter(log => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+
+        const timeStr = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase();
+        const dateStr = new Date(log.timestamp).toLocaleDateString().toLowerCase();
+
+        return (
+            log.type.toLowerCase().includes(query) ||
+            log.description.toLowerCase().includes(query) ||
+            (log.lockerId && log.lockerId.toLowerCase().includes(query)) ||
+            timeStr.includes(query) ||
+            dateStr.includes(query)
+        );
+    });
 
     return (
         <AdminLayout title="System Events">
@@ -73,7 +91,7 @@ const EventsPage = () => {
                         </tr>
                     </thead>
                     <tbody className="text-sm">
-                        {events.map((log) => (
+                        {filteredEvents.map((log) => (
                             <tr
                                 key={log.id}
                                 style={{ borderBottom: '1px solid var(--color-border)' }}
@@ -106,7 +124,7 @@ const EventsPage = () => {
                         ))}
                     </tbody>
                 </table>
-                {events.length === 0 && (
+                {filteredEvents.length === 0 && (
                     <div className="p-12 text-center" style={{ color: 'var(--color-text-subtle)' }}>
                         No events found.
                     </div>

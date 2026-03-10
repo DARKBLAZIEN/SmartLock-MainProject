@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Bell, Search, UserCircle } from 'lucide-react';
+import { SearchContext } from '../contexts/SearchContext';
 
 const Header = ({ title }) => {
+    const { searchQuery, setSearchQuery } = useContext(SearchContext);
+
     return (
         <header
             className="h-16 backdrop-blur-md border-b px-8 flex items-center justify-between sticky top-0 z-10 transition-colors duration-200"
@@ -13,16 +16,18 @@ const Header = ({ title }) => {
             <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>{title}</h2>
 
             <div className="flex items-center gap-6">
-                {/* Search Mock */}
+                {/* Search */}
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'var(--color-text-subtle)' }} />
                     <input
                         type="text"
                         placeholder="Search..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10 pr-4 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 transition-all w-64"
                         style={{
                             backgroundColor: 'var(--color-bg-surface2)',
-                            color: 'var(--color-text-muted)',
+                            color: 'var(--color-text-primary)',
                             border: 'none'
                         }}
                     />

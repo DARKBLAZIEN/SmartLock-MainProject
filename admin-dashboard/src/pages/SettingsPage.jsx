@@ -7,6 +7,7 @@ import NotificationSettings from '../components/settings/NotificationSettings';
 import HardwareSettings from '../components/settings/HardwareSettings';
 import UserManagementSettings from '../components/settings/UserManagementSettings';
 import AppearanceSettings from '../components/settings/AppearanceSettings';
+import { SearchContext } from '../contexts/SearchContext';
 
 const tabs = [
     { id: 'general', label: 'General' },
@@ -21,6 +22,19 @@ const tabs = [
 const SettingsPage = () => {
     const [activeTab, setActiveTab] = useState('general');
     const [toast, setToast] = useState({ show: false, message: '' });
+    const { searchQuery } = React.useContext(SearchContext);
+
+    const filteredTabs = tabs.filter(tab => {
+        if (!searchQuery) return true;
+        return tab.label.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+
+    // Auto-select first tab if the current active tab gets filtered out
+    React.useEffect(() => {
+        if (filteredTabs.length > 0 && !filteredTabs.find(t => t.id === activeTab)) {
+            setActiveTab(filteredTabs[0].id);
+        }
+    }, [searchQuery, filteredTabs, activeTab]);
 
     const showToast = (message) => {
         setToast({ show: true, message });
@@ -52,7 +66,7 @@ const SettingsPage = () => {
                             border: '1px solid var(--color-border)'
                         }}
                     >
-                        {tabs.map((tab) => (
+                        {filteredTabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
@@ -78,12 +92,17 @@ const SettingsPage = () => {
                                 {tab.label}
                             </button>
                         ))}
+                        {filteredTabs.length === 0 && (
+                            <div className="px-4 py-3 text-sm" style={{ color: 'var(--color-text-subtle)' }}>
+                                No settings found.
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Tab Content */}
                 <div className="flex-1 min-w-0">
-                    {renderTabContent()}
+                    {filteredTabs.length > 0 ? renderTabContent() : null}
                 </div>
             </div>
 
