@@ -1,104 +1,178 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../Card';
 import Button from '../Button';
-import { Sun, Moon, Upload } from 'lucide-react';
+import { Sun, Moon, Upload, Check } from 'lucide-react';
+
+// Directly apply theme to document — no React context dependency
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+}
 
 const AppearanceSettings = ({ onSave }) => {
-    const [settings, setSettings] = useState({
-        theme: 'light',
-        primaryColor: '#2563eb',
-        logoUrl: '/logo.png'
+    const [currentTheme, setCurrentTheme] = useState(() => {
+        return localStorage.getItem('theme') || 'light';
     });
+    const [justApplied, setJustApplied] = useState(false);
+    const [primaryColor, setPrimaryColor] = useState('#2563eb');
+    const [logoUrl] = useState('/logo.png');
 
-    const [isDirty, setIsDirty] = useState(false);
+    // Sync with document class on mount
+    useEffect(() => {
+        const docTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+        setCurrentTheme(docTheme);
+    }, []);
 
-    const handleThemeChange = (theme) => {
-        setSettings(prev => ({ ...prev, theme }));
-        setIsDirty(true);
-    };
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setSettings(prev => ({ ...prev, [name]: value }));
-        setIsDirty(true);
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSave(settings);
-        setIsDirty(false);
+    const handleThemeChange = (newTheme) => {
+        if (newTheme === currentTheme) return;
+        applyTheme(newTheme);          // apply IMMEDIATELY
+        setCurrentTheme(newTheme);
+        // Show brief "Applied" flash
+        setJustApplied(true);
+        setTimeout(() => setJustApplied(false), 1500);
     };
 
     return (
         <Card title="Appearance Settings">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-6">
+
+                {/* ── Theme Selection ── */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">Theme</label>
+                    <div className="flex items-center justify-between mb-3">
+                        <label className="block text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                            Theme
+                        </label>
+                        {justApplied && (
+                            <span className="flex items-center gap-1 text-xs font-medium text-green-500 animate-pulse">
+                                <Check className="h-3.5 w-3.5" /> Applied
+                            </span>
+                        )}
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
+                        {/* Light Button */}
                         <button
                             type="button"
                             onClick={() => handleThemeChange('light')}
-                            className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${settings.theme === 'light'
-                                    ? 'border-blue-600 bg-blue-50 text-blue-600'
-                                    : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
-                                }`}
+                            className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200"
+                            style={currentTheme === 'light'
+                                ? { backgroundColor: '#eff6ff', borderColor: '#2563eb', color: '#2563eb' }
+                                : { backgroundColor: 'var(--color-bg-surface2)', borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }
+                            }
                         >
-                            <Sun className="h-5 w-5" />
-                            <span className="font-medium">Light</span>
+                            {/* Light preview */}
+                            <div className="w-full h-16 rounded-xl overflow-hidden border border-gray-200 bg-white flex flex-col">
+                                <div className="h-3 bg-gray-100 border-b border-gray-200 flex items-center px-2 gap-1">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+                                    <span className="h-1.5 w-4 rounded-sm bg-gray-200" />
+                                </div>
+                                <div className="flex flex-1">
+                                    <div className="w-6 bg-gray-50 border-r border-gray-200" />
+                                    <div className="flex-1 p-1 flex flex-col gap-1">
+                                        <div className="h-1.5 w-full rounded-sm bg-gray-100" />
+                                        <div className="h-1.5 w-2/3 rounded-sm bg-gray-100" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <Sun className="h-4 w-4" />
+                                <span className="font-semibold text-sm">Light</span>
+                                {currentTheme === 'light' && <Check className="h-3.5 w-3.5" />}
+                            </div>
                         </button>
+
+                        {/* Dark Button */}
                         <button
                             type="button"
                             onClick={() => handleThemeChange('dark')}
-                            className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${settings.theme === 'dark'
-                                    ? 'border-blue-600 bg-blue-50 text-blue-600'
-                                    : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
-                                }`}
+                            className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200"
+                            style={currentTheme === 'dark'
+                                ? { backgroundColor: 'rgba(59,130,246,0.15)', borderColor: '#60a5fa', color: '#60a5fa' }
+                                : { backgroundColor: 'var(--color-bg-surface2)', borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }
+                            }
                         >
-                            <Moon className="h-5 w-5" />
-                            <span className="font-medium">Dark</span>
+                            {/* Dark preview */}
+                            <div className="w-full h-16 rounded-xl overflow-hidden border border-gray-700 bg-slate-900 flex flex-col">
+                                <div className="h-3 bg-slate-800 border-b border-slate-700 flex items-center px-2 gap-1">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-slate-600" />
+                                    <span className="h-1.5 w-4 rounded-sm bg-slate-700" />
+                                </div>
+                                <div className="flex flex-1">
+                                    <div className="w-6 bg-slate-800 border-r border-slate-700" />
+                                    <div className="flex-1 p-1 flex flex-col gap-1">
+                                        <div className="h-1.5 w-full rounded-sm bg-slate-700" />
+                                        <div className="h-1.5 w-2/3 rounded-sm bg-slate-700" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <Moon className="h-4 w-4" />
+                                <span className="font-semibold text-sm">Dark</span>
+                                {currentTheme === 'dark' && <Check className="h-3.5 w-3.5" />}
+                            </div>
                         </button>
                     </div>
+                    <p className="mt-2 text-xs" style={{ color: 'var(--color-text-subtle)' }}>
+                        Theme is applied instantly — no save required.
+                    </p>
                 </div>
 
+                {/* ── Primary Color ── */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Primary Color</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>Primary Color</label>
                     <div className="flex items-center gap-4">
                         <input
                             type="color"
-                            name="primaryColor"
-                            value={settings.primaryColor}
-                            onChange={handleChange}
-                            className="h-10 w-20 p-1 rounded border border-gray-100 cursor-pointer"
+                            value={primaryColor}
+                            onChange={e => setPrimaryColor(e.target.value)}
+                            className="h-10 w-20 p-1 rounded-lg cursor-pointer"
+                            style={{ border: '1px solid var(--color-border)' }}
                         />
-                        <span className="text-sm font-mono text-gray-500 uppercase">{settings.primaryColor}</span>
+                        <span className="text-sm font-mono uppercase" style={{ color: 'var(--color-text-muted)' }}>{primaryColor}</span>
                     </div>
                 </div>
 
+                {/* ── Organization Logo ── */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Organization Logo</label>
-                    <div className="flex items-center gap-6 p-6 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/50">
-                        <div className="h-16 w-16 bg-white rounded-xl shadow-sm flex items-center justify-center overflow-hidden border border-gray-100">
-                            <img src={settings.logoUrl} alt="Logo" className="max-h-12 max-w-[48px] object-contain" onError={(e) => e.target.src = 'https://via.placeholder.com/64'} />
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>Organization Logo</label>
+                    <div
+                        className="flex items-center gap-6 p-5 rounded-2xl border-2 border-dashed transition-colors duration-200"
+                        style={{ borderColor: 'var(--color-border-md)', backgroundColor: 'var(--color-bg-surface2)' }}
+                    >
+                        <div
+                            className="h-16 w-16 rounded-xl shadow-sm flex items-center justify-center overflow-hidden"
+                            style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)' }}
+                        >
+                            <img
+                                src={logoUrl}
+                                alt="Logo"
+                                className="max-h-12 max-w-[48px] object-contain"
+                                onError={e => e.target.src = 'https://via.placeholder.com/64'}
+                            />
                         </div>
                         <div className="flex-1">
                             <Button type="button" variant="outline" className="w-auto flex items-center gap-2">
                                 <Upload className="h-4 w-4" /> Change Logo
                             </Button>
-                            <p className="mt-2 text-xs text-gray-400">PNG, JPG or SVG. Max 2MB.</p>
+                            <p className="mt-2 text-xs" style={{ color: 'var(--color-text-subtle)' }}>PNG, JPG or SVG. Max 2MB.</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-100 flex justify-end">
+                {/* ── Save (for color / logo only) ── */}
+                <div className="pt-4 flex justify-end" style={{ borderTop: '1px solid var(--color-border)' }}>
                     <Button
-                        type="submit"
-                        disabled={!isDirty}
-                        className={`w-auto px-8 ${!isDirty ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        type="button"
+                        onClick={() => onSave({ theme: currentTheme, primaryColor, logoUrl })}
+                        className="w-auto px-8"
                     >
                         Save Changes
                     </Button>
                 </div>
-            </form>
+            </div>
         </Card>
     );
 };

@@ -1,31 +1,40 @@
 import React from 'react';
 
 const StatCard = ({ icon: Icon, label, value, trend, color = 'blue' }) => {
-    const colorStyles = {
-        blue: 'bg-blue-50 text-blue-600',
-        green: 'bg-green-50 text-green-600',
-        red: 'bg-red-50 text-red-600',
-        purple: 'bg-purple-50 text-purple-600',
-        orange: 'bg-orange-50 text-orange-600',
+    const iconStyles = {
+        blue: { bg: 'rgba(59,130,246,0.12)', text: '#3b82f6' },
+        green: { bg: 'rgba(34,197,94,0.12)', text: '#22c55e' },
+        red: { bg: 'rgba(239,68,68,0.12)', text: '#ef4444' },
+        purple: { bg: 'rgba(168,85,247,0.12)', text: '#a855f7' },
+        orange: { bg: 'rgba(249,115,22,0.12)', text: '#f97316' },
     };
 
+    const icon = iconStyles[color] || iconStyles.blue;
+
     return (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+        <div
+            className="rounded-2xl p-6 transition-all duration-200 hover:shadow-lg"
+            style={{
+                backgroundColor: 'var(--color-bg-surface)',
+                border: '1px solid var(--color-border)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.07)'
+            }}
+        >
             <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-sm font-medium text-gray-500">{label}</p>
-                    <h3 className="text-3xl font-bold text-gray-900 mt-2">{value}</h3>
+                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+                    <h3 className="text-3xl font-bold mt-2" style={{ color: 'var(--color-text-primary)' }}>{value}</h3>
                 </div>
-                <div className={`p-3 rounded-xl ${colorStyles[color]}`}>
-                    <Icon className="h-6 w-6" />
+                <div className="p-3 rounded-xl" style={{ backgroundColor: icon.bg }}>
+                    <Icon className="h-6 w-6" style={{ color: icon.text }} />
                 </div>
             </div>
             {trend && (
                 <div className="mt-4 flex items-center text-sm">
-                    <span className={`font-medium ${trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`font-medium ${trend >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                         {trend > 0 ? '+' : ''}{trend}%
                     </span>
-                    <span className="text-gray-400 ml-2">from last month</span>
+                    <span className="ml-2" style={{ color: 'var(--color-text-subtle)' }}>from last month</span>
                 </div>
             )}
         </div>

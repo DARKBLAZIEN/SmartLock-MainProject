@@ -104,7 +104,7 @@ const LockersPage = () => {
                 </button>
                 <button
                     onClick={() => setRefreshKey(k => k + 1)}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors"
                 >
                     <RefreshCw className="h-4 w-4" /> Refresh Status
                 </button>
@@ -113,26 +113,26 @@ const LockersPage = () => {
             {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {lockers.map((locker) => (
-                    <div key={locker.id} className="relative group bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                    <div key={locker.id} className="relative group bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all">
                         <div className={`absolute top-0 left-6 right-6 h-1 rounded-b-lg
                   ${locker.status === 'AVAILABLE' ? 'bg-green-500' : 'bg-red-500'}
                 `}></div>
 
                         <div className="flex justify-between items-start mt-2">
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900">{locker.id}</h3>
-                                <p className="text-xs text-gray-400 mt-1">
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{locker.id}</h3>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                                     {locker.status === 'AVAILABLE' ? 'Ready for use' : `Occupied`}
                                 </p>
                             </div>
                             <div className={`px-2 py-1 rounded-md text-xs font-bold
-                     ${locker.door === 'OPEN' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}
+                     ${locker.door === 'OPEN' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}
                    `}>
                                 {locker.door}
                             </div>
                         </div>
 
-                        <div className="mt-6 pt-6 border-t border-gray-100 flex gap-2">
+                        <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex gap-2">
                             <button
                                 onClick={() => initiateAction('open', locker.id)}
                                 className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-medium transition-colors"
@@ -165,16 +165,16 @@ const LockersPage = () => {
                         </div>
                     )}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Locker ID</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Locker ID</label>
                         <input
                             type="text"
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                             placeholder="e.g. L-124"
                             value={newLockerId}
                             onChange={(e) => setNewLockerId(e.target.value)}
                             autoFocus
                         />
-                        <p className="text-xs text-gray-400 mt-1">Must be unique across the system.</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Must be unique across the system.</p>
                     </div>
                     <div className="flex justify-end gap-3 pt-2">
                         <button
@@ -201,7 +201,7 @@ const LockersPage = () => {
                 title="Confirm Action"
             >
                 <div className="space-y-4">
-                    <div className="p-4 bg-yellow-50 rounded-lg flex gap-3">
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg flex gap-3">
                         <div className="shrink-0 text-yellow-600">
                             <AlertTriangle className="h-5 w-5" />
                         </div>

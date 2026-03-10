@@ -1,8 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Mail, MoreVertical, Shield } from 'lucide-react';
+import { Mail, MoreVertical } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { getResidents } from '../mock/mockBackend';
 import Loader from '../components/Loader';
+
+// Inline style helpers using CSS variables
+const surface = {
+    backgroundColor: 'var(--color-bg-surface)',
+    border: '1px solid var(--color-border)',
+};
+const surface2 = { backgroundColor: 'var(--color-bg-surface2)' };
+const inputStyle = {
+    backgroundColor: 'var(--color-bg-surface2)',
+    border: '1px solid var(--color-border-md)',
+    color: 'var(--color-text-primary)',
+    borderRadius: '0.5rem',
+    padding: '0.5rem 0.75rem',
+    width: '100%',
+    outline: 'none',
+};
 
 const ResidentsPage = () => {
     const [residents, setResidents] = useState([]);
@@ -22,9 +38,7 @@ const ResidentsPage = () => {
         }
     };
 
-    useEffect(() => {
-        fetchResidents();
-    }, []);
+    useEffect(() => { fetchResidents(); }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -57,20 +71,24 @@ const ResidentsPage = () => {
             <div className="flex justify-end mb-4">
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
                 >
-                    Add Resident
+                    + Add Resident
                 </button>
             </div>
 
+            {/* Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-2xl w-96">
-                        <h2 className="text-xl font-bold mb-4">Add New Resident</h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div
+                        className="p-6 rounded-2xl w-96 shadow-2xl transition-colors duration-200"
+                        style={surface}
+                    >
+                        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>Add New Resident</h2>
+                        <form onSubmit={handleSubmit} className="space-y-3">
                             <input
-                                placeholder="Name"
-                                className="w-full p-2 border rounded"
+                                placeholder="Full Name"
+                                style={inputStyle}
                                 value={formData.nameOfOwner}
                                 onChange={e => setFormData({ ...formData, nameOfOwner: e.target.value })}
                                 required
@@ -78,59 +96,80 @@ const ResidentsPage = () => {
                             <input
                                 placeholder="Email"
                                 type="email"
-                                className="w-full p-2 border rounded"
+                                style={inputStyle}
                                 value={formData.email}
                                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                                 required
                             />
                             <input
                                 placeholder="Apartment ID (e.g. 101)"
-                                className="w-full p-2 border rounded"
+                                style={inputStyle}
                                 value={formData.apartmentId}
                                 onChange={e => setFormData({ ...formData, apartmentId: e.target.value })}
                                 required
                             />
-                            <div className="flex justify-end gap-2 mt-4">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="text-gray-500">Cancel</button>
-                                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    style={{ color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-surface2)' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                    Save Resident
+                                </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Table */}
+            <div className="rounded-2xl overflow-hidden transition-colors duration-200" style={surface}>
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-400 font-semibold tracking-wider">
-                            <th className="px-6 py-4">User</th>
-                            <th className="px-6 py-4">Apartment</th>
-                            <th className="px-6 py-4">Actions</th>
+                        <tr style={{ backgroundColor: 'var(--color-bg-surface2)', borderBottom: '1px solid var(--color-border)' }}>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>User</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>Apartment</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 text-sm">
-                        {residents.map((user) => (
-                            <tr key={user._id} className="hover:bg-gray-50/50 transition-colors">
+                    <tbody className="text-sm">
+                        {residents.map((user, idx) => (
+                            <tr
+                                key={user._id}
+                                style={{ borderBottom: '1px solid var(--color-border)' }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-surface2)'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
-                                            {user.nameOfOwner?.charAt(0) || 'U'}
+                                        <div
+                                            className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm"
+                                            style={{ backgroundColor: 'rgba(59,130,246,0.15)', color: 'var(--color-accent)' }}
+                                        >
+                                            {user.nameOfOwner?.charAt(0)?.toUpperCase() || 'U'}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-900">{user.nameOfOwner}</p>
-                                            <p className="text-gray-400 text-xs flex items-center gap-1">
+                                            <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{user.nameOfOwner}</p>
+                                            <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: 'var(--color-text-subtle)' }}>
                                                 <Mail className="h-3 w-3" /> {user.gmail}
                                             </p>
                                         </div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className="font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                    <span
+                                        className="font-mono text-xs px-2.5 py-1 rounded-lg"
+                                        style={{ backgroundColor: 'var(--color-bg-surface2)', color: 'var(--color-text-muted)' }}
+                                    >
                                         {user.apartmentId}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <button className="text-gray-400 hover:text-gray-600">
+                                    <button style={{ color: 'var(--color-text-subtle)' }} className="hover:opacity-80 transition-opacity">
                                         <MoreVertical className="h-4 w-4" />
                                     </button>
                                 </td>
@@ -138,6 +177,11 @@ const ResidentsPage = () => {
                         ))}
                     </tbody>
                 </table>
+                {residents.length === 0 && (
+                    <div className="p-12 text-center" style={{ color: 'var(--color-text-subtle)' }}>
+                        No residents found.
+                    </div>
+                )}
             </div>
         </AdminLayout>
     );

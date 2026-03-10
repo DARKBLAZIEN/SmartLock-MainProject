@@ -1,24 +1,103 @@
 @import "tailwindcss";
 
+/*
+  Override Tailwind v4's default dark mode (which uses prefers-color-scheme media query)
+  to instead only respond to the .dark class on the <html> element.
+  This is required for our ThemeContext toggle to work.
+*/
+@variant dark (&:where(.dark, .dark *));
+
+/* ─── LIGHT MODE DEFAULTS ─── */
+:root {
+  --color-bg-page: #f1f5f9;
+  /* slate-100: clean, slightly warm */
+  --color-bg-surface: #ffffff;
+  /* pure white cards */
+  --color-bg-surface2: #f8fafc;
+  /* slate-50: subtle secondary surfaces */
+  --color-border: #e2e8f0;
+  /* slate-200: clearly visible borders */
+  --color-border-md: #cbd5e1;
+  /* slate-300: medium borders */
+  --color-text-primary: #0f172a;
+  /* slate-900: deep, crisp text */
+  --color-text-muted: #475569;
+  /* slate-600: readable secondary */
+  --color-text-subtle: #94a3b8;
+  /* slate-400: hints/placeholders */
+  --color-accent: #2563eb;
+  /* blue-600 */
+  --color-accent-light: #eff6ff;
+  /* blue-50 */
+}
+
+/* ─── DARK MODE OVERRIDES ─── */
+html.dark {
+  --color-bg-page: #0f172a;
+  /* slate-900: deep navy, not pure black */
+  --color-bg-surface: #1e293b;
+  /* slate-800: card surfaces — clearly elevated */
+  --color-bg-surface2: #334155;
+  /* slate-700: secondary panels, hover states */
+  --color-border: #334155;
+  /* slate-700: visible but not harsh */
+  --color-border-md: #475569;
+  /* slate-600: stronger separators */
+  --color-text-primary: #f1f5f9;
+  /* slate-100: crisp white text */
+  --color-text-muted: #94a3b8;
+  /* slate-400: readable secondary */
+  --color-text-subtle: #64748b;
+  /* slate-500: hints/placeholders */
+  --color-accent: #60a5fa;
+  /* blue-400: pops on dark backgrounds */
+  --color-accent-light: rgba(59, 130, 246, 0.15);
+  /* blue tint for active states */
+}
+
 /* Border animations */
 @keyframes draw-top {
-  from { transform: scaleX(0); transform-origin: left; }
-  to { transform: scaleX(1); }
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
+  to {
+    transform: scaleX(1);
+  }
 }
 
 @keyframes draw-right {
-  from { transform: scaleY(0); transform-origin: bottom; }
-  to { transform: scaleY(1); }
+  from {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+
+  to {
+    transform: scaleY(1);
+  }
 }
 
 @keyframes draw-bottom {
-  from { transform: scaleX(0); transform-origin: right; }
-  to { transform: scaleX(1); }
+  from {
+    transform: scaleX(0);
+    transform-origin: right;
+  }
+
+  to {
+    transform: scaleX(1);
+  }
 }
 
 @keyframes draw-left {
-  from { transform: scaleY(0); transform-origin: top; }
-  to { transform: scaleY(1); }
+  from {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+
+  to {
+    transform: scaleY(1);
+  }
 }
 
 /* Content animation */
@@ -27,6 +106,7 @@
     opacity: 0;
     transform: translateY(16px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -67,10 +147,104 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f3f4f6; /* Gray-100 */
+  background-color: var(--color-bg-page);
+  transition: background-color 0.2s, color 0.2s;
+  color: var(--color-text-primary);
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* ─────────────────────────────────────────────
+   THEME OVERRIDES: Directly driven by html.dark
+   These ensure every surface responds to the theme
+   toggle regardless of Tailwind dark: behavior.
+   ───────────────────────────────────────────── */
+
+/* Surfaces (cards, sidebars, modals, panels) */
+html.dark .bg-white,
+html.dark .bg-white\/80,
+html.dark [class*="bg-white"] {
+  background-color: var(--color-bg-surface) !important;
+}
+
+html.dark aside {
+  background-color: var(--color-bg-surface) !important;
+  border-color: var(--color-border) !important;
+}
+
+html.dark header {
+  background-color: var(--color-bg-surface) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Tables and list rows */
+html.dark tbody tr,
+html.dark table {
+  background-color: transparent;
+}
+
+html.dark thead tr {
+  background-color: var(--color-bg-surface2) !important;
+}
+
+html.dark tbody tr:hover {
+  background-color: var(--color-bg-surface2) !important;
+}
+
+/* Borders */
+html.dark [class*="border-gray-100"] {
+  border-color: var(--color-border) !important;
+}
+
+html.dark [class*="border-gray-200"] {
+  border-color: var(--color-border-md) !important;
+}
+
+html.dark [class*="divide-gray-100"]>*+* {
+  border-color: var(--color-border) !important;
+}
+
+/* Text */
+html.dark [class*="text-gray-900"],
+html.dark [class*="text-gray-800"],
+html.dark [class*="text-gray-700"] {
+  color: var(--color-text-primary) !important;
+}
+
+html.dark [class*="text-gray-600"],
+html.dark [class*="text-gray-500"] {
+  color: var(--color-text-muted) !important;
+}
+
+html.dark [class*="text-gray-400"] {
+  color: var(--color-text-subtle) !important;
+}
+
+/* Form inputs and selects */
+html.dark input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: var(--color-bg-surface2) !important;
+  border-color: var(--color-border-md) !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* Gray backgrounds used as subtle surfaces */
+html.dark [class*="bg-gray-50"] {
+  background-color: var(--color-bg-surface2) !important;
+}
+
+html.dark [class*="bg-gray-100"] {
+  background-color: var(--color-bg-surface2) !important;
+}
+
+html.dark [class*="bg-gray-900"] {
+  background-color: var(--color-bg-surface) !important;
+}
+
+html.dark [class*="bg-gray-950"] {
+  background-color: #030712 !important;
 }

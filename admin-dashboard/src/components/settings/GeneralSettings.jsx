@@ -42,12 +42,12 @@ const GeneralSettings = ({ onSave }) => {
                 />
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timezone</label>
                     <select
                         name="timezone"
                         value={settings.timezone}
                         onChange={handleChange}
-                        className="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        className="appearance-none block w-full px-3 py-3 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors duration-200"
                     >
                         <option>UTC+0:00</option>
                         <option>UTC+5:30</option>
@@ -57,12 +57,12 @@ const GeneralSettings = ({ onSave }) => {
                 </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Language</label>
                     <select
                         name="language"
                         value={settings.language}
                         onChange={handleChange}
-                        className="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        className="appearance-none block w-full px-3 py-3 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors duration-200"
                     >
                         <option>English (US)</option>
                         <option>Spanish</option>
@@ -71,7 +71,7 @@ const GeneralSettings = ({ onSave }) => {
                     </select>
                 </div>
 
-                <div className="pt-4 border-t border-gray-100 flex justify-end">
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-end">
                     <Button
                         type="submit"
                         disabled={!isDirty}

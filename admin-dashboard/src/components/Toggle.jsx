@@ -4,8 +4,8 @@ const Toggle = ({ enabled, setEnabled, label, description }) => {
     return (
         <div className="flex items-center justify-between py-3">
             <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-900">{label}</span>
-                {description && <span className="text-sm text-gray-500">{description}</span>}
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</span>
+                {description && <span className="text-sm text-gray-500 dark:text-gray-400">{description}</span>}
             </div>
             <button
                 type="button"

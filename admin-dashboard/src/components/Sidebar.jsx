@@ -12,41 +12,56 @@ const Sidebar = () => {
     ];
 
     return (
-        <aside className="w-64 bg-white/80 backdrop-blur-xl border-r border-gray-100 flex flex-col h-screen sticky top-0 transition-all duration-300">
+        <aside
+            className="w-64 backdrop-blur-xl flex flex-col h-screen sticky top-0 transition-colors duration-200"
+            style={{
+                backgroundColor: 'var(--color-bg-surface)',
+                borderRight: '1px solid var(--color-border)'
+            }}
+        >
             <div className="p-6 flex items-center gap-3">
                 <div className="h-10 w-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
                     <Box className="text-white h-6 w-6" />
                 </div>
                 <div>
-                    <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
+                    <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                         SmartLock
                     </h1>
-                    <p className="text-xs text-gray-400 font-medium">Admin Panel</p>
+                    <p className="text-xs font-medium" style={{ color: 'var(--color-text-subtle)' }}>Admin Panel</p>
                 </div>
             </div>
 
-            <nav className="flex-1 px-4 space-y-2 mt-4">
+            <nav className="flex-1 px-4 space-y-1 mt-4">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.path}
                         to={item.path}
                         className={({ isActive }) =>
                             `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                                ? 'bg-blue-50 text-blue-600 shadow-sm'
-                                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                                ? 'nav-active'
+                                : 'nav-default'
                             }`
                         }
+                        style={({ isActive }) => ({
+                            backgroundColor: isActive ? 'var(--color-accent-light)' : 'transparent',
+                            color: isActive ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                        })}
+                        onMouseEnter={e => { if (!e.currentTarget.classList.contains('nav-active')) { e.currentTarget.style.backgroundColor = 'var(--color-bg-surface2)'; e.currentTarget.style.color = 'var(--color-text-primary)'; } }}
+                        onMouseLeave={e => { if (!e.currentTarget.classList.contains('nav-active')) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; } }}
                     >
-                        <item.icon className="h-5 w-5" />
+                        <item.icon className="h-5 w-5 flex-shrink-0" />
                         <span className="font-medium text-sm">{item.label}</span>
-                        {/* Active Indicator */}
-                        <div className="ml-auto w-1 h-1 rounded-full bg-blue-600 opacity-0 group-[.active]:opacity-100 transition-opacity" />
                     </NavLink>
                 ))}
             </nav>
 
-            <div className="p-4 border-t border-gray-100">
-                <button className="flex items-center gap-3 w-full px-4 py-3 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all duration-200">
+            <div className="p-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+                <button
+                    className="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all duration-200"
+                    style={{ color: 'var(--color-text-muted)' }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}
+                >
                     <LogOut className="h-5 w-5" />
                     <span className="font-medium text-sm">Logout</span>
                 </button>

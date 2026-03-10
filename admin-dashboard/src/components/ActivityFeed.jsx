@@ -11,34 +11,47 @@ const ActivityFeed = ({ activities }) => {
         }
     };
 
-    const getColors = (type) => {
+    const getIconStyle = (type) => {
         switch (type) {
-            case 'DELIVERY': return 'bg-blue-100 text-blue-600';
-            case 'PICKUP': return 'bg-green-100 text-green-600';
-            case 'ADMIN_OVERRIDE': return 'bg-red-100 text-red-600';
-            default: return 'bg-gray-100 text-gray-600';
+            case 'DELIVERY': return { backgroundColor: 'rgba(59,130,246,0.12)', color: '#3b82f6' };
+            case 'PICKUP': return { backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e' };
+            case 'ADMIN_OVERRIDE': return { backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' };
+            default: return { backgroundColor: 'rgba(100,116,139,0.12)', color: '#64748b' };
         }
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-6">Recent Activity</h3>
+        <div
+            className="rounded-2xl p-6 transition-colors duration-200"
+            style={{
+                backgroundColor: 'var(--color-bg-surface)',
+                border: '1px solid var(--color-border)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.07)'
+            }}
+        >
+            <h3 className="text-lg font-bold mb-6" style={{ color: 'var(--color-text-primary)' }}>Recent Activity</h3>
             <div className="space-y-6">
                 {activities.slice(0, 5).map((activity, index) => (
                     <div key={activity.id} className="relative pl-8 pb-2 last:pb-0">
                         {/* Timeline Line */}
-                        {index !== 4 && (
-                            <div className="absolute left-[11px] top-8 bottom-0 w-[2px] bg-gray-100"></div>
+                        {index !== Math.min(activities.length - 1, 4) && (
+                            <div
+                                className="absolute left-[11px] top-8 bottom-0 w-[2px]"
+                                style={{ backgroundColor: 'var(--color-border)' }}
+                            />
                         )}
 
                         {/* Icon Bubble */}
-                        <div className={`absolute left-0 top-1 h-6 w-6 rounded-full flex items-center justify-center ${getColors(activity.type)}`}>
+                        <div
+                            className="absolute left-0 top-1 h-6 w-6 rounded-full flex items-center justify-center"
+                            style={getIconStyle(activity.type)}
+                        >
                             {getIcon(activity.type)}
                         </div>
 
                         <div className="flex flex-col">
-                            <span className="text-sm font-medium text-gray-900 line-clamp-1">{activity.description}</span>
-                            <span className="text-xs text-gray-400 mt-1">
+                            <span className="text-sm font-medium line-clamp-1" style={{ color: 'var(--color-text-primary)' }}>{activity.description}</span>
+                            <span className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
                                 {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                         </div>

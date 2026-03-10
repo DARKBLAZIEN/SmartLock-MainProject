@@ -4,7 +4,7 @@ import Header from './Header';
 
 const AdminLayout = ({ children, title = 'Overview' }) => {
     return (
-        <div className="min-h-screen bg-[#F3F6F9] font-sans flex text-gray-900">
+        <div className="min-h-screen font-sans flex text-gray-900 transition-colors duration-200" style={{ backgroundColor: 'var(--color-bg-page)', color: 'var(--color-text-primary)' }}>
             <Sidebar />
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 <Header title={title} />

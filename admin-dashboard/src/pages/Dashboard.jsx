@@ -66,10 +66,10 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Chart Area (Mock) */}
-                <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-200">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-bold text-gray-900">Occupancy Trends</h3>
-                        <select className="text-sm border-gray-200 rounded-lg text-gray-500 bg-gray-50 p-2 outline-none">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Occupancy Trends</h3>
+                        <select className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 outline-none">
                             <option>This Week</option>
                             <option>Last Week</option>
                         </select>
@@ -79,7 +79,7 @@ const Dashboard = () => {
                     <div className="h-64 flex items-end justify-between px-2 gap-2">
                         {[40, 65, 30, 85, 55, 90, 45].map((height, i) => (
                             <div key={i} className="w-full flex flex-col items-center gap-2 group cursor-pointer">
-                                <div className="relative w-full bg-blue-50 rounded-t-lg overflow-hidden h-full">
+                                <div className="relative w-full bg-blue-50 dark:bg-blue-950/30 rounded-t-lg overflow-hidden h-full">
                                     <div
                                         style={{ height: `${height}%` }}
                                         className="absolute bottom-0 w-full bg-blue-500 rounded-t-lg transition-all duration-500 group-hover:bg-blue-600"
