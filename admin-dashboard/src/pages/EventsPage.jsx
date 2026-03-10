@@ -15,6 +15,7 @@ const getTypeBadgeStyle = (type) => {
         case 'DELIVERY': return { backgroundColor: 'rgba(59,130,246,0.12)', color: '#3b82f6' };
         case 'PICKUP': return { backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e' };
         case 'ADMIN_OVERRIDE': return { backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' };
+        case 'SYSTEM_ALERT': return { backgroundColor: 'rgba(234,179,8,0.12)', color: '#eab308' };
         default: return { backgroundColor: 'rgba(100,116,139,0.12)', color: '#64748b' };
     }
 };
@@ -143,6 +144,7 @@ const EventsPage = () => {
                             <option value="DELIVERY">Delivery</option>
                             <option value="PICKUP">Pickup</option>
                             <option value="ADMIN_OVERRIDE">Admin Override</option>
+                            <option value="SYSTEM_ALERT">System Alert</option>
                         </select>
                     </div>
 
