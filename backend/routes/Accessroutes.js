@@ -266,4 +266,33 @@ router.post("/pickup", async (req, res) => {
   }
 });
 
+// Update Resident
+router.put("/:id", async (req, res) => {
+  try {
+    const { nameOfOwner, gmail, apartmentId } = req.body;
+    const updated = await Apartment.findByIdAndUpdate(
+      req.params.id,
+      { nameOfOwner, gmail, apartmentId },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ success: false, message: "Resident not found" });
+    res.json({ success: true, resident: updated });
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Delete Resident
+router.delete("/:id", async (req, res) => {
+  try {
+    const deleted = await Apartment.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, message: "Resident not found" });
+    res.json({ success: true, message: "Resident deleted successfully" });
+  } catch (error) {
+    console.error("Delete error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 module.exports = router;

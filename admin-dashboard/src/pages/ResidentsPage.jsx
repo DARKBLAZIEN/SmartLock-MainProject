@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Mail, MoreVertical } from 'lucide-react';
+import { Mail, MoreVertical, Edit, Trash2, X } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { getResidents } from '../mock/mockBackend';
 import Loader from '../components/Loader';
@@ -24,6 +24,8 @@ const ResidentsPage = () => {
     const [residents, setResidents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editId, setEditId] = useState(null);
+    const [activeMenu, setActiveMenu] = useState(null);
     const [formData, setFormData] = useState({ nameOfOwner: '', email: '', apartmentId: '' });
 
     const fetchResidents = async () => {
@@ -40,11 +42,26 @@ const ResidentsPage = () => {
 
     useEffect(() => { fetchResidents(); }, []);
 
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (!e.target.closest('.action-menu-container')) {
+                setActiveMenu(null);
+            }
+        };
+        if (activeMenu) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [activeMenu]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const url = editId
+            ? `http://localhost:5000/api/apartment/${editId}`
+            : 'http://localhost:5000/api/apartment/register';
+        const method = editId ? 'PUT' : 'POST';
+
         try {
-            const res = await fetch('http://localhost:5000/api/apartment/register', {
-                method: 'POST',
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     nameOfOwner: formData.nameOfOwner,
@@ -54,14 +71,47 @@ const ResidentsPage = () => {
             });
             if (res.ok) {
                 setIsModalOpen(false);
+                setEditId(null);
                 setFormData({ nameOfOwner: '', email: '', apartmentId: '' });
                 fetchResidents();
             } else {
-                alert('Output Failed');
+                alert(editId ? 'Update Failed' : 'Registration Failed');
             }
         } catch (error) {
-            alert('Error adding resident');
+            alert('Error saving resident');
         }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this resident?')) return;
+        try {
+            const res = await fetch(`http://localhost:5000/api/apartment/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                fetchResidents();
+                setActiveMenu(null);
+            } else {
+                alert('Delete failed');
+            }
+        } catch (error) {
+            alert('Error deleting resident');
+        }
+    };
+
+    const openEditModal = (resident) => {
+        setFormData({
+            nameOfOwner: resident.nameOfOwner,
+            email: resident.gmail,
+            apartmentId: resident.apartmentId
+        });
+        setEditId(resident._id);
+        setIsModalOpen(true);
+        setActiveMenu(null);
+    };
+
+    const openAddModal = () => {
+        setFormData({ nameOfOwner: '', email: '', apartmentId: '' });
+        setEditId(null);
+        setIsModalOpen(true);
     };
 
     if (loading) return <AdminLayout title="Residents"><Loader /></AdminLayout>;
@@ -70,7 +120,7 @@ const ResidentsPage = () => {
         <AdminLayout title="Resident Directory">
             <div className="flex justify-end mb-4">
                 <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={openAddModal}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
                 >
                     + Add Resident
@@ -84,7 +134,9 @@ const ResidentsPage = () => {
                         className="p-6 rounded-2xl w-96 shadow-2xl transition-colors duration-200"
                         style={surface}
                     >
-                        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>Add New Resident</h2>
+                        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>
+                            {editId ? 'Edit Resident' : 'Add New Resident'}
+                        </h2>
                         <form onSubmit={handleSubmit} className="space-y-3">
                             <input
                                 placeholder="Full Name"
@@ -111,14 +163,17 @@ const ResidentsPage = () => {
                             <div className="flex justify-end gap-3 pt-2">
                                 <button
                                     type="button"
-                                    onClick={() => setIsModalOpen(false)}
+                                    onClick={() => {
+                                        setIsModalOpen(false);
+                                        setEditId(null);
+                                    }}
                                     className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                                     style={{ color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-surface2)' }}
                                 >
                                     Cancel
                                 </button>
                                 <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                                    Save Resident
+                                    {editId ? 'Update Resident' : 'Save Resident'}
                                 </button>
                             </div>
                         </form>
@@ -168,10 +223,36 @@ const ResidentsPage = () => {
                                         {user.apartmentId}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4">
-                                    <button style={{ color: 'var(--color-text-subtle)' }} className="hover:opacity-80 transition-opacity">
+                                <td className="px-6 py-4 relative action-menu-container">
+                                    <button
+                                        onClick={() => setActiveMenu(activeMenu === user._id ? null : user._id)}
+                                        style={{ color: 'var(--color-text-subtle)' }}
+                                        className="hover:opacity-80 transition-opacity p-1"
+                                    >
                                         <MoreVertical className="h-4 w-4" />
                                     </button>
+
+                                    {activeMenu === user._id && (
+                                        <div
+                                            className="absolute right-10 top-2 z-10 w-32 rounded-xl shadow-xl border overflow-hidden"
+                                            style={{ backgroundColor: 'var(--color-bg-surface2)', borderColor: 'var(--color-border)' }}
+                                        >
+                                            <button
+                                                onClick={() => openEditModal(user)}
+                                                className="w-full text-left px-4 py-2 text-xs flex items-center gap-2 hover:bg-white/5 transition-colors"
+                                                style={{ color: 'var(--color-text-primary)' }}
+                                            >
+                                                <Edit className="h-3 w-3" /> Edit
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(user._id)}
+                                                className="w-full text-left px-4 py-2 text-xs flex items-center gap-2 hover:bg-red-500/10 transition-colors"
+                                                style={{ color: '#ef4444' }}
+                                            >
+                                                <Trash2 className="h-3 w-3" /> Delete
+                                            </button>
+                                        </div>
+                                    )}
                                 </td>
                             </tr>
                         ))}
