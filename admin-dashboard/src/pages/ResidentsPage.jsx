@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Mail, MoreVertical, Edit, Trash2, X } from 'lucide-react';
+import { Mail, MoreVertical, Edit, Trash2, X, ArrowLeft, UserPlus, ArrowRight, User, Hash, ShieldCheck, KeyRound, Loader2 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { getResidents } from '../mock/mockBackend';
 import Loader from '../components/Loader';
@@ -27,7 +27,9 @@ const ResidentsPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editId, setEditId] = useState(null);
     const [activeMenu, setActiveMenu] = useState(null);
-    const [formData, setFormData] = useState({ nameOfOwner: '', email: '', apartmentId: '' });
+    const [formData, setFormData] = useState({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
+    const [regStep, setRegStep] = useState('info'); // 'info' or 'otp'
+    const [submitting, setSubmitting] = useState(false);
     const { searchQuery } = React.useContext(SearchContext);
 
     const fetchResidents = async () => {
@@ -55,32 +57,109 @@ const ResidentsPage = () => {
     }, [activeMenu]);
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        const url = editId
-            ? `http://localhost:5000/api/apartment/${editId}`
-            : 'http://localhost:5000/api/apartment/register';
-        const method = editId ? 'PUT' : 'POST';
+        if (e) e.preventDefault();
+        
+        // If editing, use the direct update logic
+        if (editId) {
+            setSubmitting(true);
+            try {
+                const res = await fetch(`http://localhost:5000/api/apartment/${editId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nameOfOwner: formData.nameOfOwner,
+                        gmail: formData.email,
+                        apartmentId: formData.apartmentId
+                    })
+                });
+                if (res.ok) {
+                    setIsModalOpen(false);
+                    setEditId(null);
+                    setFormData({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
+                    fetchResidents();
+                } else {
+                    const data = await res.json();
+                    alert(data.message || 'Update Failed');
+                }
+            } catch (error) {
+                alert('Error updating resident');
+            } finally {
+                setSubmitting(false);
+            }
+            return;
+        }
 
+        // If adding new, trigger OTP
+        setSubmitting(true);
         try {
-            const res = await fetch(url, {
-                method,
+            const res = await fetch('http://localhost:5000/api/apartment/register-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gmail: formData.email })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setRegStep('otp');
+            } else {
+                alert(data.message || 'Failed to send OTP');
+            }
+        } catch (error) {
+            alert('Error sending OTP');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleVerifyOTP = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            const res = await fetch('http://localhost:5000/api/apartment/register', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     nameOfOwner: formData.nameOfOwner,
                     gmail: formData.email,
-                    apartmentId: formData.apartmentId
+                    apartmentId: formData.apartmentId,
+                    otp: formData.otp
                 })
             });
-            if (res.ok) {
+            const data = await res.json();
+            if (res.ok && data.success) {
                 setIsModalOpen(false);
                 setEditId(null);
-                setFormData({ nameOfOwner: '', email: '', apartmentId: '' });
+                setRegStep('info');
+                setFormData({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
                 fetchResidents();
+                alert('Resident added successfully!');
             } else {
-                alert(editId ? 'Update Failed' : 'Registration Failed');
+                alert(data.message || 'Verification Failed');
             }
         } catch (error) {
-            alert('Error saving resident');
+            alert('Error verifying OTP');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleResendOTP = async () => {
+        setSubmitting(true);
+        try {
+            const res = await fetch('http://localhost:5000/api/apartment/register-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gmail: formData.email })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                alert('OTP resent successfully!');
+            } else {
+                alert(data.message || 'Failed to resend OTP');
+            }
+        } catch (error) {
+            alert('Error resending OTP');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -103,16 +182,19 @@ const ResidentsPage = () => {
         setFormData({
             nameOfOwner: resident.nameOfOwner,
             email: resident.gmail,
-            apartmentId: resident.apartmentId
+            apartmentId: resident.apartmentId,
+            otp: ''
         });
         setEditId(resident._id);
+        setRegStep('info');
         setIsModalOpen(true);
         setActiveMenu(null);
     };
 
     const openAddModal = () => {
-        setFormData({ nameOfOwner: '', email: '', apartmentId: '' });
+        setFormData({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
         setEditId(null);
+        setRegStep('info');
         setIsModalOpen(true);
     };
 
@@ -143,52 +225,107 @@ const ResidentsPage = () => {
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
                     <div
-                        className="p-6 rounded-2xl w-96 shadow-2xl transition-colors duration-200"
+                        className="p-6 rounded-2xl w-96 shadow-2xl transition-colors duration-200 relative"
                         style={surface}
                     >
-                        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>
-                            {editId ? 'Edit Resident' : 'Add New Resident'}
+                        {regStep === 'otp' && (
+                            <button 
+                                onClick={() => setRegStep('info')}
+                                className="absolute left-6 top-7 text-slate-500 hover:text-blue-400 transition-colors"
+                            >
+                                <ArrowLeft size={18} />
+                            </button>
+                        )}
+                        <h2 className={`text-xl font-bold mb-4 ${regStep === 'otp' ? 'text-center' : ''}`} style={{ color: 'var(--color-text-primary)' }}>
+                            {editId ? 'Edit Resident' : (regStep === 'info' ? 'Add New Resident' : 'Verify Email')}
                         </h2>
-                        <form onSubmit={handleSubmit} className="space-y-3">
-                            <input
-                                placeholder="Full Name"
-                                style={inputStyle}
-                                value={formData.nameOfOwner}
-                                onChange={e => setFormData({ ...formData, nameOfOwner: e.target.value })}
-                                required
-                            />
-                            <input
-                                placeholder="Email"
-                                type="email"
-                                style={inputStyle}
-                                value={formData.email}
-                                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                required
-                            />
-                            <input
-                                placeholder="Apartment ID (e.g. 101)"
-                                style={inputStyle}
-                                value={formData.apartmentId}
-                                onChange={e => setFormData({ ...formData, apartmentId: e.target.value })}
-                                required
-                            />
-                            <div className="flex justify-end gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsModalOpen(false);
-                                        setEditId(null);
-                                    }}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                                    style={{ color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-surface2)' }}
-                                >
-                                    Cancel
-                                </button>
-                                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                                    {editId ? 'Update Resident' : 'Save Resident'}
-                                </button>
-                            </div>
-                        </form>
+                        
+                        {regStep === 'info' ? (
+                            <form onSubmit={handleSubmit} className="space-y-3">
+                                <input
+                                    placeholder="Full Name"
+                                    style={inputStyle}
+                                    value={formData.nameOfOwner}
+                                    onChange={e => setFormData({ ...formData, nameOfOwner: e.target.value })}
+                                    required
+                                    disabled={submitting}
+                                />
+                                <input
+                                    placeholder="Email"
+                                    type="email"
+                                    style={inputStyle}
+                                    value={formData.email}
+                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    required
+                                    disabled={submitting}
+                                />
+                                <input
+                                    placeholder="Apartment ID (e.g. 101)"
+                                    style={inputStyle}
+                                    value={formData.apartmentId}
+                                    onChange={e => setFormData({ ...formData, apartmentId: e.target.value })}
+                                    required
+                                    disabled={submitting}
+                                />
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsModalOpen(false);
+                                            setEditId(null);
+                                        }}
+                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                        style={{ color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-surface2)' }}
+                                        disabled={submitting}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                                        disabled={submitting}
+                                    >
+                                        {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                                        {editId ? 'Update Resident' : 'Verify & Continue'}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleVerifyOTP} className="space-y-4">
+                                <p className="text-xs text-center mb-2" style={{ color: 'var(--color-text-muted)' }}>
+                                    Enter the 6-digit code sent to<br/>
+                                    <span className="font-semibold text-blue-400">{formData.email}</span>
+                                </p>
+                                <input
+                                    placeholder="6-Digit OTP"
+                                    style={{...inputStyle, textAlign: 'center', letterSpacing: '0.25em', fontSize: '1.1rem'}}
+                                    value={formData.otp}
+                                    onChange={e => setFormData({ ...formData, otp: e.target.value })}
+                                    maxLength={6}
+                                    required
+                                    disabled={submitting}
+                                />
+                                <div className="space-y-2">
+                                    <button 
+                                        type="submit" 
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                        disabled={submitting}
+                                    >
+                                        {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                                        Complete Registration
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={handleResendOTP}
+                                        className="w-full py-2 text-xs font-medium hover:underline disabled:opacity-50"
+                                        style={{ color: 'var(--color-accent)' }}
+                                        disabled={submitting}
+                                    >
+                                        Didn't get a code? Resend
+                                    </button>
+                                </div>
+                            </form>
+                        )}
                     </div>
                 </div>
             )}
