@@ -28,6 +28,7 @@ const ResidentsPage = () => {
     const [editId, setEditId] = useState(null);
     const [activeMenu, setActiveMenu] = useState(null);
     const [formData, setFormData] = useState({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
+    const [originalData, setOriginalData] = useState(null);
     const [regStep, setRegStep] = useState('info'); // 'info' or 'otp'
     const [submitting, setSubmitting] = useState(false);
     const { searchQuery } = React.useContext(SearchContext);
@@ -59,8 +60,34 @@ const ResidentsPage = () => {
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();
         
-        // If editing, use the direct update logic
+        // If editing
         if (editId) {
+            const isEmailChanged = formData.email !== originalData.email;
+
+            // If email changed, we need OTP
+            if (isEmailChanged) {
+                setSubmitting(true);
+                try {
+                    const res = await fetch('http://localhost:5000/api/apartment/register-otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ gmail: formData.email })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        setRegStep('otp');
+                    } else {
+                        alert(data.message || 'Failed to send OTP');
+                    }
+                } catch (error) {
+                    alert('Error sending OTP');
+                } finally {
+                    setSubmitting(false);
+                }
+                return;
+            }
+
+            // If email NOT changed, direct update
             setSubmitting(true);
             try {
                 const res = await fetch(`http://localhost:5000/api/apartment/${editId}`, {
@@ -77,6 +104,7 @@ const ResidentsPage = () => {
                     setEditId(null);
                     setFormData({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
                     fetchResidents();
+                    alert('Resident updated successfully!');
                 } else {
                     const data = await res.json();
                     alert(data.message || 'Update Failed');
@@ -114,8 +142,13 @@ const ResidentsPage = () => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const res = await fetch('http://localhost:5000/api/apartment/register', {
-                method: 'POST',
+            const url = editId 
+                ? `http://localhost:5000/api/apartment/${editId}` 
+                : 'http://localhost:5000/api/apartment/register';
+            const method = editId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     nameOfOwner: formData.nameOfOwner,
@@ -131,7 +164,7 @@ const ResidentsPage = () => {
                 setRegStep('info');
                 setFormData({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
                 fetchResidents();
-                alert('Resident added successfully!');
+                alert(editId ? 'Resident updated successfully!' : 'Resident added successfully!');
             } else {
                 alert(data.message || 'Verification Failed');
             }
@@ -179,12 +212,14 @@ const ResidentsPage = () => {
     };
 
     const openEditModal = (resident) => {
-        setFormData({
+        const data = {
             nameOfOwner: resident.nameOfOwner,
             email: resident.gmail,
             apartmentId: resident.apartmentId,
             otp: ''
-        });
+        };
+        setFormData(data);
+        setOriginalData(data);
         setEditId(resident._id);
         setRegStep('info');
         setIsModalOpen(true);
@@ -193,6 +228,7 @@ const ResidentsPage = () => {
 
     const openAddModal = () => {
         setFormData({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
+        setOriginalData(null);
         setEditId(null);
         setRegStep('info');
         setIsModalOpen(true);
@@ -286,7 +322,9 @@ const ResidentsPage = () => {
                                         disabled={submitting}
                                     >
                                         {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                                        {editId ? 'Update Resident' : 'Verify & Continue'}
+                                        {editId 
+                                            ? (formData.email !== originalData.email ? 'Verify Gmail' : 'Update Resident') 
+                                            : 'Verify & Continue'}
                                     </button>
                                 </div>
                             </form>
@@ -312,7 +350,7 @@ const ResidentsPage = () => {
                                         disabled={submitting}
                                     >
                                         {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                                        Complete Registration
+                                        {editId ? 'Update Registration' : 'Complete Registration'}
                                     </button>
                                     <button 
                                         type="button"

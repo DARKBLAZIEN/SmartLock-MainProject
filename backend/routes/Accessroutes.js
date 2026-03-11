@@ -269,14 +269,39 @@ router.post("/pickup", async (req, res) => {
 // Update Resident
 router.put("/:id", async (req, res) => {
   try {
-    const { nameOfOwner, gmail, apartmentId } = req.body;
-    const updated = await Apartment.findByIdAndUpdate(
-      req.params.id,
-      { nameOfOwner, gmail, apartmentId },
-      { new: true }
-    );
-    if (!updated) return res.status(404).json({ success: false, message: "Resident not found" });
-    res.json({ success: true, resident: updated });
+    const { nameOfOwner, gmail, apartmentId, otp } = req.body;
+    const existingResident = await Apartment.findById(req.params.id);
+    
+    if (!existingResident) {
+      return res.status(404).json({ success: false, message: "Resident not found" });
+    }
+
+    // Check if email is changing
+    const isEmailChanging = gmail && gmail.toLowerCase() !== existingResident.gmail.toLowerCase();
+
+    if (isEmailChanging) {
+      if (!otp) {
+        return res.status(400).json({ success: false, message: "OTP is required for email changes" });
+      }
+
+      // Verify OTP for the NEW email
+      const otpRecord = await RegistrationOTP.findOne({ gmail: gmail.toLowerCase() });
+      if (!otpRecord || otpRecord.otp !== otp) {
+        return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+      }
+
+      // Clean up OTP after verification
+      await RegistrationOTP.deleteOne({ gmail: gmail.toLowerCase() });
+    }
+
+    // Update the resident
+    existingResident.nameOfOwner = nameOfOwner || existingResident.nameOfOwner;
+    existingResident.gmail = gmail ? gmail.toLowerCase() : existingResident.gmail;
+    existingResident.apartmentId = apartmentId || existingResident.apartmentId;
+
+    await existingResident.save();
+    
+    res.json({ success: true, resident: existingResident });
   } catch (error) {
     console.error("Update error:", error);
     res.status(500).json({ success: false, message: "Server error" });
