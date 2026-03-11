@@ -20,8 +20,14 @@ const Sidebar = () => {
             }}
         >
             <div className="p-6 flex items-center gap-3">
-                <div className="h-10 w-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <Box className="text-white h-6 w-6" />
+                <div
+                    className="h-10 w-10 rounded-xl flex items-center justify-center shadow-lg"
+                    style={{
+                        background: 'linear-gradient(135deg, var(--color-accent), var(--color-accent))',
+                        boxShadow: '0 10px 15px -3px var(--color-accent-light)'
+                    }}
+                >
+                    <Box className="h-6 w-6" style={{ color: 'var(--color-accent-contrast)' }} />
                 </div>
                 <div>
                     <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
@@ -43,8 +49,9 @@ const Sidebar = () => {
                             }`
                         }
                         style={({ isActive }) => ({
-                            backgroundColor: isActive ? 'var(--color-accent-light)' : 'transparent',
-                            color: isActive ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                            backgroundColor: isActive ? 'var(--color-accent)' : 'transparent',
+                            color: isActive ? 'var(--color-accent-contrast)' : 'var(--color-text-muted)',
+                            boxShadow: isActive ? '0 4px 12px var(--color-accent-light)' : 'none',
                         })}
                         onMouseEnter={e => { if (!e.currentTarget.classList.contains('nav-active')) { e.currentTarget.style.backgroundColor = 'var(--color-bg-surface2)'; e.currentTarget.style.color = 'var(--color-text-primary)'; } }}
                         onMouseLeave={e => { if (!e.currentTarget.classList.contains('nav-active')) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; } }}

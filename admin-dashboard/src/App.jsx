@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { SearchProvider } from './contexts/SearchContext';
 import { TimezoneProvider } from './contexts/TimezoneContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 import Dashboard from "./pages/Dashboard";
 import LockersPage from "./pages/LockersPage";
@@ -10,7 +11,8 @@ import SettingsPage from "./pages/SettingsPage";
 
 export default function App() {
   return (
-    <TimezoneProvider>
+    <ThemeProvider>
+      <TimezoneProvider>
       <SearchProvider>
         <Routes>
           <Route path="/" element={<Dashboard />} />
@@ -23,5 +25,6 @@ export default function App() {
         </Routes>
       </SearchProvider>
     </TimezoneProvider>
+    </ThemeProvider>
   );
 }

@@ -72,9 +72,10 @@ const SettingsPage = () => {
                                 onClick={() => setActiveTab(tab.id)}
                                 className="w-full text-left px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium mb-1 last:mb-0"
                                 style={{
-                                    backgroundColor: activeTab === tab.id ? 'var(--color-accent-light)' : 'transparent',
-                                    color: activeTab === tab.id ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                                    backgroundColor: activeTab === tab.id ? 'var(--color-accent)' : 'transparent',
+                                    color: activeTab === tab.id ? 'var(--color-accent-contrast)' : 'var(--color-text-muted)',
                                     fontWeight: activeTab === tab.id ? '600' : '500',
+                                    boxShadow: activeTab === tab.id ? '0 4px 12px var(--color-accent-light)' : 'none',
                                 }}
                                 onMouseEnter={e => {
                                     if (activeTab !== tab.id) {

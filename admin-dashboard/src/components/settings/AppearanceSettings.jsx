@@ -1,37 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Card from '../Card';
 import Button from '../Button';
 import { Sun, Moon, Upload, Check } from 'lucide-react';
-
-// Directly apply theme to document — no React context dependency
-function applyTheme(theme) {
-    if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('theme', theme);
-}
+import { useTheme } from '../../contexts/ThemeContext';
 
 const AppearanceSettings = ({ onSave }) => {
-    const [currentTheme, setCurrentTheme] = useState(() => {
-        return localStorage.getItem('theme') || 'light';
-    });
+    const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme();
     const [justApplied, setJustApplied] = useState(false);
-    const [primaryColor, setPrimaryColor] = useState('#2563eb');
+    const [tempColor, setTempColor] = useState(primaryColor);
     const [logoUrl] = useState('/logo.png');
 
-    // Sync with document class on mount
-    useEffect(() => {
-        const docTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-        setCurrentTheme(docTheme);
-    }, []);
-
     const handleThemeChange = (newTheme) => {
-        if (newTheme === currentTheme) return;
-        applyTheme(newTheme);          // apply IMMEDIATELY
-        setCurrentTheme(newTheme);
-        // Show brief "Applied" flash
+        if (newTheme === theme) return;
+        setTheme(newTheme);
+        setJustApplied(true);
+        setTimeout(() => setJustApplied(false), 1500);
+    };
+
+    const handleSave = () => {
+        setPrimaryColor(tempColor);
+        if (onSave) onSave({ theme, primaryColor: tempColor, logoUrl });
         setJustApplied(true);
         setTimeout(() => setJustApplied(false), 1500);
     };
@@ -58,8 +46,8 @@ const AppearanceSettings = ({ onSave }) => {
                             type="button"
                             onClick={() => handleThemeChange('light')}
                             className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200"
-                            style={currentTheme === 'light'
-                                ? { backgroundColor: '#eff6ff', borderColor: '#2563eb', color: '#2563eb' }
+                            style={theme === 'light'
+                                ? { backgroundColor: 'var(--color-accent-light)', borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }
                                 : { backgroundColor: 'var(--color-bg-surface2)', borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }
                             }
                         >
@@ -80,7 +68,7 @@ const AppearanceSettings = ({ onSave }) => {
                             <div className="flex items-center gap-1.5">
                                 <Sun className="h-4 w-4" />
                                 <span className="font-semibold text-sm">Light</span>
-                                {currentTheme === 'light' && <Check className="h-3.5 w-3.5" />}
+                                {theme === 'light' && <Check className="h-3.5 w-3.5" />}
                             </div>
                         </button>
 
@@ -89,8 +77,8 @@ const AppearanceSettings = ({ onSave }) => {
                             type="button"
                             onClick={() => handleThemeChange('dark')}
                             className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200"
-                            style={currentTheme === 'dark'
-                                ? { backgroundColor: 'rgba(59,130,246,0.15)', borderColor: '#60a5fa', color: '#60a5fa' }
+                            style={theme === 'dark'
+                                ? { backgroundColor: 'var(--color-accent-light)', borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }
                                 : { backgroundColor: 'var(--color-bg-surface2)', borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }
                             }
                         >
@@ -111,7 +99,7 @@ const AppearanceSettings = ({ onSave }) => {
                             <div className="flex items-center gap-1.5">
                                 <Moon className="h-4 w-4" />
                                 <span className="font-semibold text-sm">Dark</span>
-                                {currentTheme === 'dark' && <Check className="h-3.5 w-3.5" />}
+                                {theme === 'dark' && <Check className="h-3.5 w-3.5" />}
                             </div>
                         </button>
                     </div>
@@ -126,12 +114,12 @@ const AppearanceSettings = ({ onSave }) => {
                     <div className="flex items-center gap-4">
                         <input
                             type="color"
-                            value={primaryColor}
-                            onChange={e => setPrimaryColor(e.target.value)}
+                            value={tempColor}
+                            onChange={e => setTempColor(e.target.value)}
                             className="h-10 w-20 p-1 rounded-lg cursor-pointer"
                             style={{ border: '1px solid var(--color-border)' }}
                         />
-                        <span className="text-sm font-mono uppercase" style={{ color: 'var(--color-text-muted)' }}>{primaryColor}</span>
+                        <span className="text-sm font-mono uppercase" style={{ color: 'var(--color-text-muted)' }}>{tempColor}</span>
                     </div>
                 </div>
 
@@ -166,7 +154,7 @@ const AppearanceSettings = ({ onSave }) => {
                 <div className="pt-4 flex justify-end" style={{ borderTop: '1px solid var(--color-border)' }}>
                     <Button
                         type="button"
-                        onClick={() => onSave({ theme: currentTheme, primaryColor, logoUrl })}
+                        onClick={handleSave}
                         className="w-auto px-8"
                     >
                         Save Changes

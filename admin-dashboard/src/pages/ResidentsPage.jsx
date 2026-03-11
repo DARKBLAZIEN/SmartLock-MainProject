@@ -251,7 +251,8 @@ const ResidentsPage = () => {
             <div className="flex justify-end mb-4">
                 <button
                     onClick={openAddModal}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                    className="px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                    style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
                 >
                     + Add Resident
                 </button>
@@ -318,7 +319,8 @@ const ResidentsPage = () => {
                                     </button>
                                     <button 
                                         type="submit" 
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                                        style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
                                         disabled={submitting}
                                     >
                                         {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -332,7 +334,7 @@ const ResidentsPage = () => {
                             <form onSubmit={handleVerifyOTP} className="space-y-4">
                                 <p className="text-xs text-center mb-2" style={{ color: 'var(--color-text-muted)' }}>
                                     Enter the 6-digit code sent to<br/>
-                                    <span className="font-semibold text-blue-400">{formData.email}</span>
+                                    <span className="font-semibold" style={{ color: 'var(--color-accent)' }}>{formData.email}</span>
                                 </p>
                                 <input
                                     placeholder="6-Digit OTP"
@@ -390,7 +392,7 @@ const ResidentsPage = () => {
                                     <div className="flex items-center gap-3">
                                         <div
                                             className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm"
-                                            style={{ backgroundColor: 'rgba(59,130,246,0.15)', color: 'var(--color-accent)' }}
+                                            style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
                                         >
                                             {user.nameOfOwner?.charAt(0)?.toUpperCase() || 'U'}
                                         </div>

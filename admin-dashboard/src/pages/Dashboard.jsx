@@ -99,10 +99,13 @@ const Dashboard = () => {
                     <div className="h-64 flex items-end justify-between px-2 gap-2">
                         {[40, 65, 30, 85, 55, 90, 45].map((height, i) => (
                             <div key={i} className="w-full flex flex-col items-center gap-2 group cursor-pointer">
-                                <div className="relative w-full bg-blue-50 dark:bg-blue-950/30 rounded-t-lg overflow-hidden h-full">
+                                <div
+                                    className="relative w-full rounded-t-lg overflow-hidden h-full"
+                                    style={{ backgroundColor: 'var(--color-accent-light)' }}
+                                >
                                     <div
-                                        style={{ height: `${height}%` }}
-                                        className="absolute bottom-0 w-full bg-blue-500 rounded-t-lg transition-all duration-500 group-hover:bg-blue-600"
+                                        style={{ height: `${height}%`, backgroundColor: 'var(--color-accent)' }}
+                                        className="absolute bottom-0 w-full rounded-t-lg transition-all duration-500"
                                     ></div>
                                 </div>
                                 <span className="text-xs text-gray-400 font-medium">

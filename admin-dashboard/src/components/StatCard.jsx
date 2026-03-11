@@ -2,7 +2,7 @@ import React from 'react';
 
 const StatCard = ({ icon: Icon, label, value, trend, color = 'blue' }) => {
     const iconStyles = {
-        blue: { bg: 'rgba(59,130,246,0.12)', text: '#3b82f6' },
+        blue: { bg: 'var(--color-accent-light)', text: 'var(--color-accent)' },
         green: { bg: 'rgba(34,197,94,0.12)', text: '#22c55e' },
         red: { bg: 'rgba(239,68,68,0.12)', text: '#ef4444' },
         purple: { bg: 'rgba(168,85,247,0.12)', text: '#a855f7' },

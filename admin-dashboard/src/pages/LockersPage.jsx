@@ -100,7 +100,8 @@ const LockersPage = () => {
             <div className="flex justify-end mb-6 gap-3">
                 <button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm shadow-blue-200 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors"
+                    style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
                 >
                     <Plus className="h-4 w-4" /> Add Unit
                 </button>
@@ -142,7 +143,8 @@ const LockersPage = () => {
                         <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex gap-2">
                             <button
                                 onClick={() => initiateAction('open', locker.id)}
-                                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-medium transition-colors"
+                                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-colors"
+                                style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
                             >
                                 <Unlock className="h-3 w-3" /> Open
                             </button>
@@ -175,7 +177,7 @@ const LockersPage = () => {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Locker ID</label>
                         <input
                             type="text"
-                            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)] transition-all"
                             placeholder="e.g. L-124"
                             value={newLockerId}
                             onChange={(e) => setNewLockerId(e.target.value)}
@@ -193,7 +195,8 @@ const LockersPage = () => {
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                            style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
                         >
                             Install Unit
                         </button>

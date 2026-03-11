@@ -31,7 +31,8 @@ const LockerGrid = ({ lockers, onForceOpen }) => {
                         {isOccupied && !isOpen && (
                             <button
                                 onClick={() => onForceOpen(locker.id)}
-                                className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+                                className="mt-2 text-xs underline"
+                                style={{ color: 'var(--color-accent)' }}
                             >
                                 Force Open
                             </button>

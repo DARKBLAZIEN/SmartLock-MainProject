@@ -13,7 +13,7 @@ const surface = {
 
 const getTypeBadgeStyle = (type) => {
     switch (type) {
-        case 'DELIVERY': return { backgroundColor: 'rgba(59,130,246,0.12)', color: '#3b82f6' };
+        case 'DELIVERY': return { backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' };
         case 'PICKUP': return { backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e' };
         case 'ADMIN_OVERRIDE': return { backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' };
         case 'SYSTEM_ALERT': return { backgroundColor: 'rgba(234,179,8,0.12)', color: '#eab308' };
