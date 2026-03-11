@@ -1,7 +1,9 @@
 import React from 'react';
 import { Package, User, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { useTimezone } from '../contexts/TimezoneContext';
 
 const ActivityFeed = ({ activities }) => {
+    const { formatInTimezone } = useTimezone();
     const getIcon = (type) => {
         switch (type) {
             case 'DELIVERY': return <Package className="h-4 w-4" />;
@@ -52,7 +54,7 @@ const ActivityFeed = ({ activities }) => {
                         <div className="flex flex-col">
                             <span className="text-sm font-medium line-clamp-1" style={{ color: 'var(--color-text-primary)' }}>{activity.description}</span>
                             <span className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-                                {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {formatInTimezone(activity.timestamp, false)}
                             </span>
                         </div>
                     </div>

@@ -4,6 +4,7 @@ import AdminLayout from '../components/AdminLayout';
 import { getRecentActivity } from '../mock/mockBackend';
 import Loader from '../components/Loader';
 import { SearchContext } from '../contexts/SearchContext';
+import { useTimezone } from '../contexts/TimezoneContext';
 
 const surface = {
     backgroundColor: 'var(--color-bg-surface)',
@@ -24,6 +25,7 @@ const EventsPage = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const { searchQuery } = React.useContext(SearchContext);
+    const { formatInTimezone } = useTimezone();
     const [filterType, setFilterType] = useState('ALL');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -111,8 +113,8 @@ const EventsPage = () => {
         if (!searchQuery) return true;
         const query = searchQuery.toLowerCase();
 
-        const timeStr = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase();
-        const dateStr = new Date(log.timestamp).toLocaleDateString().toLowerCase();
+        const timeStr = formatInTimezone(log.timestamp, false).toLowerCase();
+        const dateStr = formatInTimezone(log.timestamp).split(' ')[0].toLowerCase();
 
         return (
             log.type.toLowerCase().includes(query) ||
@@ -300,10 +302,10 @@ const EventsPage = () => {
                                 </td>
                                 <td className="px-6 py-4 text-right whitespace-nowrap">
                                     <span style={{ color: 'var(--color-text-muted)' }}>
-                                        {new Date(log.timestamp).toLocaleDateString()}
+                                        {formatInTimezone(log.timestamp).split(' ')[0]}
                                     </span>
                                     <span className="ml-2 text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-                                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {formatInTimezone(log.timestamp).split(' ')[1]}
                                     </span>
                                 </td>
                             </tr>

@@ -1,17 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../Card';
 import Input from '../Input';
 import Button from '../Button';
+import { useTimezone } from '../../contexts/TimezoneContext';
 
 const GeneralSettings = ({ onSave }) => {
+    const { timezone, setTimezone } = useTimezone();
     const [settings, setSettings] = useState({
         systemName: 'SmartLock Pro',
-        orgName: 'Acme Corporatiom',
-        timezone: 'UTC+5:30',
+        orgName: 'Acme Corporation',
+        timezone: timezone,
         language: 'English (US)'
     });
 
     const [isDirty, setIsDirty] = useState(false);
+
+    useEffect(() => {
+        setSettings(prev => ({ ...prev, timezone }));
+    }, [timezone]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -21,6 +27,7 @@ const GeneralSettings = ({ onSave }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        setTimezone(settings.timezone);
         onSave(settings);
         setIsDirty(false);
     };
@@ -49,10 +56,10 @@ const GeneralSettings = ({ onSave }) => {
                         onChange={handleChange}
                         className="appearance-none block w-full px-3 py-3 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors duration-200"
                     >
-                        <option>UTC+0:00</option>
-                        <option>UTC+5:30</option>
-                        <option>UTC-8:00</option>
-                        <option>UTC+1:00</option>
+                        <option value="UTC+0:00">UTC+0:00</option>
+                        <option value="UTC+1:00">UTC+1:00</option>
+                        <option value="UTC+5:30">UTC+5:30</option>
+                        <option value="UTC-8:00">UTC-8:00</option>
                     </select>
                 </div>
 

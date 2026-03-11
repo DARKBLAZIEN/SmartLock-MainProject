@@ -6,12 +6,14 @@ import ActivityFeed from '../components/ActivityFeed';
 import { getDashboardStats, getRecentActivity } from '../mock/mockBackend';
 import Loader from '../components/Loader';
 import { SearchContext } from '../contexts/SearchContext';
+import { useTimezone } from '../contexts/TimezoneContext';
 
 const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({});
     const [activities, setActivities] = useState([]);
     const { searchQuery } = React.useContext(SearchContext);
+    const { formatInTimezone } = useTimezone();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -37,8 +39,8 @@ const Dashboard = () => {
         if (!searchQuery) return true;
         const query = searchQuery.toLowerCase();
 
-        const timeStr = new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase();
-        const dateStr = new Date(activity.timestamp).toLocaleDateString().toLowerCase();
+        const timeStr = formatInTimezone(activity.timestamp, false).toLowerCase();
+        const dateStr = formatInTimezone(activity.timestamp).split(' ')[0].toLowerCase();
 
         return (
             activity.type?.toLowerCase().includes(query) ||
