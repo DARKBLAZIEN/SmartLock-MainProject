@@ -4,6 +4,7 @@ const Apartment = require("../models/Apartment");
 const Locker = require("../models/Locker");
 const DeliveryLog = require("../models/DeliveryLog");
 const RegistrationOTP = require("../models/RegistrationOTP");
+const Event = require("../models/Event");
 
 const router = express.Router();
 
@@ -59,6 +60,13 @@ router.put("/locker/reset", async (req, res) => {
 
     locker.isFree = true;
     await locker.save();
+
+    await new Event({
+      type: 'ADMIN_OVERRIDE',
+      description: `Locker ${lockerId} manually reset by administrator`,
+      lockerId: lockerId
+    }).save();
+
     res.status(200).json({ success: true, message: "Locker reset successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
@@ -176,8 +184,9 @@ router.post("/delivery", async (req, res) => {
     });
     await newLog.save();
 
-    // 5. Update Locker Status to Occupied
+    // 5. Update Locker Status to Occupied and OPEN
     freeLocker.isFree = false;
+    freeLocker.isOpen = true; // Simulating physical unlock
     await freeLocker.save();
 
     // 6. Send Email
@@ -194,6 +203,14 @@ router.post("/delivery", async (req, res) => {
       console.error("Email failed to send (CHECK .ENV CREDENTIALS):", emailError.message);
       // Continue execution - do not fail the request just because email failed
     }
+
+    // 7. Log Event
+    await new Event({
+      type: 'DELIVERY',
+      description: `New package for ${apartment.nameOfOwner} in Locker ${freeLocker.lockerId}`,
+      lockerId: freeLocker.lockerId,
+      apartmentId: apartment.apartmentId
+    }).save();
 
     return res.status(200).json({
       success: true,
@@ -233,10 +250,10 @@ router.post("/pickup", async (req, res) => {
     activeDelivery.isPickedUp = true;
     await activeDelivery.save();
 
-    // 3. Update the locker to be FREE again
+    // 3. Update the locker to be FREE and OPEN again
     await Locker.findOneAndUpdate(
       { lockerId: activeDelivery.lockerId },
-      { isFree: true }
+      { isFree: true, isOpen: true } // Simulating physical unlock
     );
 
     // 4. Create a permanent Pickup Log for history
@@ -255,9 +272,18 @@ router.post("/pickup", async (req, res) => {
       text: `Hello ${apartment.nameOfOwner}, your package in locker ${activeDelivery.lockerId} has been successfully collected.`
     });
 
+    // 6. Log Event
+    await new Event({
+      type: 'PICKUP',
+      description: `Package collected by resident of Apt ${apartmentId}`,
+      lockerId: activeDelivery.lockerId,
+      apartmentId: apartmentId
+    }).save();
+
     return res.status(200).json({
       success: true,
-      message: "Locker Unlocked! Please collect your package."
+      message: "Locker Unlocked! Please collect your package.",
+      lockerId: activeDelivery.lockerId
     });
 
   } catch (error) {
@@ -308,6 +334,64 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+// --- LOCKER SIMULATION ---
+
+// Simulate opening the locker (physical action)
+router.post("/locker/open", async (req, res) => {
+  try {
+    const { lockerId } = req.body;
+    const locker = await Locker.findOne({ lockerId });
+    if (!locker) return res.status(404).json({ success: false, message: "Locker not found" });
+
+    locker.isOpen = true;
+    await locker.save();
+    
+    await new Event({
+      type: 'ADMIN_OVERRIDE',
+      description: `Locker door opened by administrator override`,
+      lockerId: lockerId
+    }).save();
+
+    console.log(`[Locker Simulation] Locker ${lockerId} OPENED.`);
+    res.status(200).json({ success: true, message: "Locker opened" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Simulate closing the locker (physical action)
+router.post("/locker/close", async (req, res) => {
+  try {
+    const { lockerId } = req.body;
+    const locker = await Locker.findOne({ lockerId });
+    if (!locker) return res.status(404).json({ success: false, message: "Locker not found" });
+
+    locker.isOpen = false;
+    await locker.save();
+    
+    await new Event({
+      type: 'CLOSE',
+      description: `Locker door closed and secured`,
+      lockerId: lockerId
+    }).save();
+
+    console.log(`[Locker Simulation] Locker ${lockerId} CLOSED and LOCKED.`);
+    res.status(200).json({ success: true, message: "Locker closed and locked" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Get all events
+router.get("/events", async (req, res) => {
+  try {
+    const events = await Event.find().sort({ timestamp: -1 }).limit(100);
+    res.status(200).json(events);
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 // Delete Resident
 router.delete("/:id", async (req, res) => {
   try {
@@ -317,6 +401,21 @@ router.delete("/:id", async (req, res) => {
   } catch (error) {
     console.error("Delete error:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Test Alert Simulation
+router.post("/test/alert", async (req, res) => {
+  try {
+    const { lockerId, message } = req.body;
+    await new Event({
+      type: 'SYSTEM_ALERT',
+      description: message || `System Alert: Irregular activity detected on unit ${lockerId}`,
+      lockerId: lockerId
+    }).save();
+    res.json({ success: true, message: "Alert logged" });
+  } catch (err) {
+    res.status(500).json({ success: false });
   }
 });
 

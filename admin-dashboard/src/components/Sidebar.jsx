@@ -1,14 +1,16 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Box, Users, Activity, Settings, LogOut } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
 
 const Sidebar = () => {
+    const { settings, t } = useSettings();
     const navItems = [
-        { icon: LayoutDashboard, label: 'Overview', path: '/' },
-        { icon: Box, label: 'Lockers', path: '/lockers' },
-        { icon: Users, label: 'Residents', path: '/residents' },
-        { icon: Activity, label: 'Events', path: '/events' },
-        { icon: Settings, label: 'Settings', path: '/settings' },
+        { icon: LayoutDashboard, label: t('Overview'), path: '/' },
+        { icon: Box, label: t('Lockers'), path: '/lockers' },
+        { icon: Users, label: t('Residents'), path: '/residents' },
+        { icon: Activity, label: t('Events'), path: '/events' },
+        { icon: Settings, label: t('Settings'), path: '/settings' },
     ];
 
     return (
@@ -30,10 +32,10 @@ const Sidebar = () => {
                     <Box className="h-6 w-6" style={{ color: 'var(--color-accent-contrast)' }} />
                 </div>
                 <div>
-                    <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                        SmartLock
+                    <h1 className="text-xl font-bold truncate max-w-[150px]" title={settings.systemName} style={{ color: 'var(--color-text-primary)' }}>
+                        {settings.systemName}
                     </h1>
-                    <p className="text-xs font-medium" style={{ color: 'var(--color-text-subtle)' }}>Admin Panel</p>
+                    <p className="text-xs font-medium" style={{ color: 'var(--color-text-subtle)' }}>{t('Admin Panel')}</p>
                 </div>
             </div>
 
@@ -70,7 +72,7 @@ const Sidebar = () => {
                     onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}
                 >
                     <LogOut className="h-5 w-5" />
-                    <span className="font-medium text-sm">Logout</span>
+                    <span className="font-medium text-sm">{t('Logout')}</span>
                 </button>
             </div>
         </aside>

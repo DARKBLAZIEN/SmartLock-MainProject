@@ -3,8 +3,10 @@ import Card from '../Card';
 import Input from '../Input';
 import Button from '../Button';
 import Toggle from '../Toggle';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const SecuritySettings = ({ onSave }) => {
+    const { t } = useSettings();
     const [settings, setSettings] = useState({
         otpExpiry: 5,
         maxFailedAttempts: 3,
@@ -32,10 +34,10 @@ const SecuritySettings = ({ onSave }) => {
     };
 
     return (
-        <Card title="Security Settings">
+        <Card title={t('Security Settings')}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                    label="OTP Expiry Time (minutes)"
+                    label={t('OTP Expiry Time (minutes)')}
                     type="number"
                     name="otpExpiry"
                     value={settings.otpExpiry}
@@ -43,7 +45,7 @@ const SecuritySettings = ({ onSave }) => {
                     min="1"
                 />
                 <Input
-                    label="Maximum Failed Attempts"
+                    label={t('Maximum Failed Attempts')}
                     type="number"
                     name="maxFailedAttempts"
                     value={settings.maxFailedAttempts}
@@ -51,7 +53,7 @@ const SecuritySettings = ({ onSave }) => {
                     min="1"
                 />
                 <Input
-                    label="Session Timeout (minutes)"
+                    label={t('Session Timeout (minutes)')}
                     type="number"
                     name="sessionTimeout"
                     value={settings.sessionTimeout}
@@ -60,8 +62,8 @@ const SecuritySettings = ({ onSave }) => {
                 />
 
                 <Toggle
-                    label="Enable Two Factor Authentication"
-                    description="Require an extra code for administrative logins"
+                    label={t('Enable Two Factor Authentication')}
+                    description={t('Require an extra code for administrative logins')}
                     enabled={settings.enable2FA}
                     setEnabled={(val) => handleToggle('enable2FA', val)}
                 />
@@ -72,7 +74,7 @@ const SecuritySettings = ({ onSave }) => {
                         disabled={!isDirty}
                         className={`w-auto px-8 ${!isDirty ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        Save Changes
+                        {t('Save Changes')}
                     </Button>
                 </div>
             </form>

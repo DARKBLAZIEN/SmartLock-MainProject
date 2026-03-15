@@ -1,17 +1,22 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Hash, ArrowRight, Package } from "lucide-react";
+import { useFlow, FLOW_MODES, FLOW_STATUS } from "../../context/FlowContext";
 
 export default function DeliveryAccess() {
   const [apartmentId, setApartmentId] = useState("");
   const navigate = useNavigate();
+  const { startFlow, updateFlow } = useFlow();
 
   const handleSubmit = async (e) => {
   e.preventDefault();
 
+  startFlow(FLOW_MODES.DELIVERY);
+  updateFlow({ status: FLOW_STATUS.PROCESSING, apartmentId });
+
   try {
     const response = await fetch(
-      "http://localhost:5000/api/apartment/delivery",
+      `${import.meta.env.VITE_API_URL}/apartment/delivery`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -28,11 +33,14 @@ export default function DeliveryAccess() {
     }
 
     // 2. The Confirmation logic
-    // Now that the email is ALREADY sent, we show the success state
-    alert(`Success! Package for ${data.nameOfOwner} placed in Locker ${data.lockerId}. Email sent.`);
+    // Now we navigate to the simulation page
+    updateFlow({ 
+        status: FLOW_STATUS.SUCCESS, 
+        lockerId: data.lockerId,
+        details: data
+    });
     
-    // Optional: Navigate back to home after success
-    // navigate("/");
+    navigate("/delivery/status");
 
   } catch (error) {
     console.error("Delivery access error:", error);

@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import Card from '../Card';
 import Button from '../Button';
 import Toggle from '../Toggle';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const NotificationSettings = ({ onSave }) => {
+    const { t } = useSettings();
     const [settings, setSettings] = useState({
         emailNotifications: true,
         smsNotifications: false,
@@ -25,29 +27,29 @@ const NotificationSettings = ({ onSave }) => {
     };
 
     return (
-        <Card title="Notification Settings">
+        <Card title={t('Notification Settings')}>
             <form onSubmit={handleSubmit} className="space-y-2">
                 <Toggle
-                    label="Email Notifications"
-                    description="Receive system updates via email"
+                    label={t('Email Notifications')}
+                    description={t('Receive system updates via email')}
                     enabled={settings.emailNotifications}
                     setEnabled={(val) => handleToggle('emailNotifications', val)}
                 />
                 <Toggle
-                    label="SMS Notifications"
-                    description="Receive urgent alerts via SMS"
+                    label={t('SMS Notifications')}
+                    description={t('Receive urgent alerts via SMS')}
                     enabled={settings.smsNotifications}
                     setEnabled={(val) => handleToggle('smsNotifications', val)}
                 />
                 <Toggle
-                    label="Door Left Open Alerts"
-                    description="Notify if a locker door remains open too long"
+                    label={t('Door Left Open Alerts')}
+                    description={t('Notify if a locker door remains open too long')}
                     enabled={settings.doorOpenAlerts}
                     setEnabled={(val) => handleToggle('doorOpenAlerts', val)}
                 />
                 <Toggle
-                    label="Failed Access Alerts"
-                    description="Notify after suspicious failed entry attempts"
+                    label={t('Failed Access Alerts')}
+                    description={t('Notify after suspicious failed entry attempts')}
                     enabled={settings.failedAccessAlerts}
                     setEnabled={(val) => handleToggle('failedAccessAlerts', val)}
                 />
@@ -58,7 +60,7 @@ const NotificationSettings = ({ onSave }) => {
                         disabled={!isDirty}
                         className={`w-auto px-8 ${!isDirty ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        Save Changes
+                        {t('Save Changes')}
                     </Button>
                 </div>
             </form>

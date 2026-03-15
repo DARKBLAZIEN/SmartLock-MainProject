@@ -4,6 +4,9 @@ import AdminLayout from '../components/AdminLayout';
 import { getResidents } from '../mock/mockBackend';
 import Loader from '../components/Loader';
 import { SearchContext } from '../contexts/SearchContext';
+import { useSettings } from '../contexts/SettingsContext';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Inline style helpers using CSS variables
 const surface = {
@@ -32,10 +35,11 @@ const ResidentsPage = () => {
     const [regStep, setRegStep] = useState('info'); // 'info' or 'otp'
     const [submitting, setSubmitting] = useState(false);
     const { searchQuery } = React.useContext(SearchContext);
+    const { t } = useSettings();
 
     const fetchResidents = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/apartment');
+            const res = await fetch(`${API_URL}/apartment`);
             const data = await res.json();
             setResidents(data);
         } catch (error) {
@@ -68,7 +72,7 @@ const ResidentsPage = () => {
             if (isEmailChanged) {
                 setSubmitting(true);
                 try {
-                    const res = await fetch('http://localhost:5000/api/apartment/register-otp', {
+                    const res = await fetch(`${API_URL}/apartment/register-otp`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ gmail: formData.email })
@@ -90,7 +94,7 @@ const ResidentsPage = () => {
             // If email NOT changed, direct update
             setSubmitting(true);
             try {
-                const res = await fetch(`http://localhost:5000/api/apartment/${editId}`, {
+                const res = await fetch(`${API_URL}/apartment/${editId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -120,7 +124,7 @@ const ResidentsPage = () => {
         // If adding new, trigger OTP
         setSubmitting(true);
         try {
-            const res = await fetch('http://localhost:5000/api/apartment/register-otp', {
+            const res = await fetch(`${API_URL}/apartment/register-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ gmail: formData.email })
@@ -143,8 +147,8 @@ const ResidentsPage = () => {
         setSubmitting(true);
         try {
             const url = editId 
-                ? `http://localhost:5000/api/apartment/${editId}` 
-                : 'http://localhost:5000/api/apartment/register';
+                ? `${API_URL}/apartment/${editId}` 
+                : `${API_URL}/apartment/register`;
             const method = editId ? 'PUT' : 'POST';
 
             const res = await fetch(url, {
@@ -178,7 +182,7 @@ const ResidentsPage = () => {
     const handleResendOTP = async () => {
         setSubmitting(true);
         try {
-            const res = await fetch('http://localhost:5000/api/apartment/register-otp', {
+            const res = await fetch(`${API_URL}/apartment/register-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ gmail: formData.email })
@@ -199,7 +203,7 @@ const ResidentsPage = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this resident?')) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/apartment/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_URL}/apartment/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 fetchResidents();
                 setActiveMenu(null);
@@ -244,17 +248,17 @@ const ResidentsPage = () => {
         );
     });
 
-    if (loading) return <AdminLayout title="Residents"><Loader /></AdminLayout>;
+    if (loading) return <AdminLayout title={t('Residents')}><Loader /></AdminLayout>;
 
     return (
-        <AdminLayout title="Resident Directory">
+        <AdminLayout title={t('Resident Directory')}>
             <div className="flex justify-end mb-4">
                 <button
                     onClick={openAddModal}
                     className="px-4 py-2 rounded-lg font-medium transition-colors text-sm"
                     style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
                 >
-                    + Add Resident
+                    + {t('Add Resident')}
                 </button>
             </div>
 
@@ -274,13 +278,13 @@ const ResidentsPage = () => {
                             </button>
                         )}
                         <h2 className={`text-xl font-bold mb-4 ${regStep === 'otp' ? 'text-center' : ''}`} style={{ color: 'var(--color-text-primary)' }}>
-                            {editId ? 'Edit Resident' : (regStep === 'info' ? 'Add New Resident' : 'Verify Email')}
+                            {editId ? t('Edit') : (regStep === 'info' ? t('Add Resident') : t('Verify Email'))}
                         </h2>
                         
                         {regStep === 'info' ? (
                             <form onSubmit={handleSubmit} className="space-y-3">
                                 <input
-                                    placeholder="Full Name"
+                                    placeholder={t('Full Name')}
                                     style={inputStyle}
                                     value={formData.nameOfOwner}
                                     onChange={e => setFormData({ ...formData, nameOfOwner: e.target.value })}
@@ -288,7 +292,7 @@ const ResidentsPage = () => {
                                     disabled={submitting}
                                 />
                                 <input
-                                    placeholder="Email"
+                                    placeholder={t('Email')}
                                     type="email"
                                     style={inputStyle}
                                     value={formData.email}
@@ -297,7 +301,7 @@ const ResidentsPage = () => {
                                     disabled={submitting}
                                 />
                                 <input
-                                    placeholder="Apartment ID (e.g. 101)"
+                                    placeholder={t('Apartment ID')}
                                     style={inputStyle}
                                     value={formData.apartmentId}
                                     onChange={e => setFormData({ ...formData, apartmentId: e.target.value })}
@@ -315,7 +319,7 @@ const ResidentsPage = () => {
                                         style={{ color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-surface2)' }}
                                         disabled={submitting}
                                     >
-                                        Cancel
+                                        {t('Cancel')}
                                     </button>
                                     <button 
                                         type="submit" 
@@ -325,8 +329,8 @@ const ResidentsPage = () => {
                                     >
                                         {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                                         {editId 
-                                            ? (formData.email !== originalData.email ? 'Verify Gmail' : 'Update Resident') 
-                                            : 'Verify & Continue'}
+                                            ? (formData.email !== originalData.email ? t('Verify Gmail') : t('Update Resident')) 
+                                            : t('Verify & Continue')}
                                     </button>
                                 </div>
                             </form>
@@ -337,7 +341,7 @@ const ResidentsPage = () => {
                                     <span className="font-semibold" style={{ color: 'var(--color-accent)' }}>{formData.email}</span>
                                 </p>
                                 <input
-                                    placeholder="6-Digit OTP"
+                                    placeholder={t('6-Digit OTP')}
                                     style={{...inputStyle, textAlign: 'center', letterSpacing: '0.25em', fontSize: '1.1rem'}}
                                     value={formData.otp}
                                     onChange={e => setFormData({ ...formData, otp: e.target.value })}
@@ -352,7 +356,7 @@ const ResidentsPage = () => {
                                         disabled={submitting}
                                     >
                                         {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                                        {editId ? 'Update Registration' : 'Complete Registration'}
+                                        {editId ? t('Update Registration') : t('Complete Registration')}
                                     </button>
                                     <button 
                                         type="button"
@@ -361,7 +365,7 @@ const ResidentsPage = () => {
                                         style={{ color: 'var(--color-accent)' }}
                                         disabled={submitting}
                                     >
-                                        Didn't get a code? Resend
+                                        {t("Didn't get a code? Resend")}
                                     </button>
                                 </div>
                             </form>
@@ -375,9 +379,9 @@ const ResidentsPage = () => {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr style={{ backgroundColor: 'var(--color-bg-surface2)', borderBottom: '1px solid var(--color-border)' }}>
-                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>User</th>
-                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>Apartment</th>
-                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>Actions</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>{t('User')}</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>{t('Apartment')}</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>{t('Actions')}</th>
                         </tr>
                     </thead>
                     <tbody className="text-sm">
@@ -431,14 +435,14 @@ const ResidentsPage = () => {
                                                 className="w-full text-left px-4 py-2 text-xs flex items-center gap-2 hover:bg-white/5 transition-colors"
                                                 style={{ color: 'var(--color-text-primary)' }}
                                             >
-                                                <Edit className="h-3 w-3" /> Edit
+                                                <Edit className="h-3 w-3" /> {t('Edit')}
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(user._id)}
                                                 className="w-full text-left px-4 py-2 text-xs flex items-center gap-2 hover:bg-red-500/10 transition-colors"
                                                 style={{ color: '#ef4444' }}
                                             >
-                                                <Trash2 className="h-3 w-3" /> Delete
+                                                <Trash2 className="h-3 w-3" /> {t('Delete')}
                                             </button>
                                         </div>
                                     )}
@@ -449,7 +453,7 @@ const ResidentsPage = () => {
                 </table>
                 {filteredResidents.length === 0 && (
                     <div className="p-12 text-center" style={{ color: 'var(--color-text-subtle)' }}>
-                        No residents found.
+                        {t('No residents found.')}
                     </div>
                 )}
             </div>

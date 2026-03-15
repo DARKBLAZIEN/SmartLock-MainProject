@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Filter, Calendar, Clock } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
-import { getRecentActivity } from '../mock/mockBackend';
+import { lockerApi } from '../api/locker.api';
 import Loader from '../components/Loader';
 import { SearchContext } from '../contexts/SearchContext';
 import { useTimezone } from '../contexts/TimezoneContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const surface = {
     backgroundColor: 'var(--color-bg-surface)',
@@ -15,6 +16,7 @@ const getTypeBadgeStyle = (type) => {
     switch (type) {
         case 'DELIVERY': return { backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' };
         case 'PICKUP': return { backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e' };
+        case 'CLOSE': return { backgroundColor: 'rgba(100,116,139,0.12)', color: '#64748b' };
         case 'ADMIN_OVERRIDE': return { backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' };
         case 'SYSTEM_ALERT': return { backgroundColor: 'rgba(234,179,8,0.12)', color: '#eab308' };
         default: return { backgroundColor: 'rgba(100,116,139,0.12)', color: '#64748b' };
@@ -26,6 +28,7 @@ const EventsPage = () => {
     const [loading, setLoading] = useState(true);
     const { searchQuery } = React.useContext(SearchContext);
     const { formatInTimezone } = useTimezone();
+    const { t, translateDescription } = useSettings();
     const [filterType, setFilterType] = useState('ALL');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -50,13 +53,28 @@ const EventsPage = () => {
     }, []);
 
     useEffect(() => {
-        getRecentActivity().then(data => {
-            setEvents(data);
-            setLoading(false);
-        });
+        const fetchEvents = async () => {
+            try {
+                const data = await lockerApi.getEvents();
+                // Map API data to UI format
+                const mappedData = data.map(item => ({
+                    id: item._id,
+                    type: item.type,
+                    description: item.description,
+                    lockerId: item.lockerId,
+                    timestamp: item.timestamp
+                }));
+                setEvents(mappedData);
+            } catch (err) {
+                console.error("Failed to load events:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchEvents();
     }, []);
 
-    if (loading) return <AdminLayout title="Events Log"><Loader /></AdminLayout>;
+    if (loading) return <AdminLayout title={t('Events Log')}><Loader /></AdminLayout>;
 
     const filteredEvents = events.filter(log => {
         // 1. Type filter logic
@@ -126,7 +144,7 @@ const EventsPage = () => {
     });
 
     return (
-        <AdminLayout title="System Events">
+        <AdminLayout title={t('System Events')}>
             <div className="rounded-2xl overflow-hidden transition-colors duration-200" style={surface}>
                 {/* Filter Bar */}
                 <div className="p-4 flex gap-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -142,11 +160,12 @@ const EventsPage = () => {
                                 border: '1px solid var(--color-border-md)'
                             }}
                         >
-                            <option value="ALL">All Types</option>
-                            <option value="DELIVERY">Delivery</option>
-                            <option value="PICKUP">Pickup</option>
-                            <option value="ADMIN_OVERRIDE">Admin Override</option>
-                            <option value="SYSTEM_ALERT">System Alert</option>
+                            <option value="ALL">{t('All Types')}</option>
+                            <option value="DELIVERY">{t('Delivery')}</option>
+                            <option value="PICKUP">{t('Pickup')}</option>
+                            <option value="CLOSE">{t('Close')}</option>
+                            <option value="ADMIN_OVERRIDE">{t('Admin Override')}</option>
+                            <option value="SYSTEM_ALERT">{t('System Alert')}</option>
                         </select>
                     </div>
 
@@ -162,13 +181,13 @@ const EventsPage = () => {
                             onMouseEnter={e => !isDateDropdownOpen && (e.currentTarget.style.backgroundColor = 'var(--color-border)')}
                             onMouseLeave={e => !isDateDropdownOpen && (e.currentTarget.style.backgroundColor = 'var(--color-bg-surface2)')}
                         >
-                            <Calendar className="h-3 w-3" /> Date Range
+                            <Calendar className="h-3 w-3" /> {t('Date Range')}
                         </button>
 
                         {isDateDropdownOpen && (
                             <div className="absolute top-full mt-2 left-0 p-3 rounded-xl flex flex-col gap-3 shadow-lg z-50 min-w-max" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)' }}>
                                 <div className="flex items-center gap-2 justify-between">
-                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>From</span>
+                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{t('From')}</span>
                                     <input
                                         type="date"
                                         value={startDate}
@@ -182,7 +201,7 @@ const EventsPage = () => {
                                     />
                                 </div>
                                 <div className="flex items-center gap-2 justify-between">
-                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>To</span>
+                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{t('To')}</span>
                                     <input
                                         type="date"
                                         value={endDate}
@@ -202,7 +221,7 @@ const EventsPage = () => {
                                         className="text-xs py-1.5 w-full text-center rounded-lg hover:underline transition-all"
                                         style={{ color: 'var(--color-text-subtle)', backgroundColor: 'var(--color-bg-surface2)' }}
                                     >
-                                        Clear Dates
+                                        {t('Clear Dates')}
                                     </button>
                                 )}
                             </div>
@@ -221,13 +240,13 @@ const EventsPage = () => {
                             onMouseEnter={e => !isTimeDropdownOpen && (e.currentTarget.style.backgroundColor = 'var(--color-border)')}
                             onMouseLeave={e => !isTimeDropdownOpen && (e.currentTarget.style.backgroundColor = 'var(--color-bg-surface2)')}
                         >
-                            <Clock className="h-3 w-3" /> Time Range
+                            <Clock className="h-3 w-3" /> {t('Time Range')}
                         </button>
 
                         {isTimeDropdownOpen && (
                             <div className="absolute top-full mt-2 left-0 p-3 rounded-xl flex flex-col gap-3 shadow-lg z-50 min-w-max" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)' }}>
                                 <div className="flex items-center gap-2 justify-between">
-                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>From</span>
+                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{t('From')}</span>
                                     <input
                                         type="time"
                                         value={startTime}
@@ -241,7 +260,7 @@ const EventsPage = () => {
                                     />
                                 </div>
                                 <div className="flex items-center gap-2 justify-between">
-                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>To</span>
+                                    <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{t('To')}</span>
                                     <input
                                         type="time"
                                         value={endTime}
@@ -260,7 +279,7 @@ const EventsPage = () => {
                                         className="text-xs py-1.5 w-full text-center rounded-lg hover:underline transition-all"
                                         style={{ color: 'var(--color-text-subtle)', backgroundColor: 'var(--color-bg-surface2)' }}
                                     >
-                                        Clear Times
+                                        {t('Clear Times')}
                                     </button>
                                 )}
                             </div>
@@ -272,10 +291,10 @@ const EventsPage = () => {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr style={{ backgroundColor: 'var(--color-bg-surface2)', borderBottom: '1px solid var(--color-border)' }}>
-                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider w-36" style={{ color: 'var(--color-text-subtle)' }}>Type</th>
-                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>Description</th>
-                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>Locker</th>
-                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-right" style={{ color: 'var(--color-text-subtle)' }}>Time</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider w-36" style={{ color: 'var(--color-text-subtle)' }}>{t('Type')}</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>{t('Description')}</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>{t('Lockers')}</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-right" style={{ color: 'var(--color-text-subtle)' }}>{t('Time')}</th>
                         </tr>
                     </thead>
                     <tbody className="text-sm">
@@ -291,11 +310,11 @@ const EventsPage = () => {
                                         className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold"
                                         style={getTypeBadgeStyle(log.type)}
                                     >
-                                        {log.type.replace('_', ' ')}
+                                        {t((log.type || 'EVENT'))}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                                    {log.description}
+                                    {translateDescription(log.description)}
                                 </td>
                                 <td className="px-6 py-4 font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>
                                     {log.lockerId || '—'}
@@ -314,7 +333,7 @@ const EventsPage = () => {
                 </table>
                 {filteredEvents.length === 0 && (
                     <div className="p-12 text-center" style={{ color: 'var(--color-text-subtle)' }}>
-                        No events found.
+                        {t('No events found.')}
                     </div>
                 )}
             </div>

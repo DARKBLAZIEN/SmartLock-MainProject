@@ -34,7 +34,7 @@ const StatCard = ({ icon: Icon, label, value, trend, color = 'blue' }) => {
                     <span className={`font-medium ${trend >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                         {trend > 0 ? '+' : ''}{trend}%
                     </span>
-                    <span className="ml-2" style={{ color: 'var(--color-text-subtle)' }}>from last month</span>
+                    <span className="ml-2" style={{ color: 'var(--color-text-subtle)' }}>than the last month</span>
                 </div>
             )}
         </div>

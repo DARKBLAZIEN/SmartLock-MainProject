@@ -3,21 +3,28 @@ import Card from '../Card';
 import Input from '../Input';
 import Button from '../Button';
 import { useTimezone } from '../../contexts/TimezoneContext';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const GeneralSettings = ({ onSave }) => {
     const { timezone, setTimezone } = useTimezone();
+    const { settings: globalSettings, updateSettings, t } = useSettings();
     const [settings, setSettings] = useState({
-        systemName: 'SmartLock Pro',
+        systemName: globalSettings.systemName,
         orgName: 'Acme Corporation',
         timezone: timezone,
-        language: 'English (US)'
+        language: globalSettings.language
     });
 
     const [isDirty, setIsDirty] = useState(false);
 
     useEffect(() => {
-        setSettings(prev => ({ ...prev, timezone }));
-    }, [timezone]);
+        setSettings(prev => ({ 
+            ...prev, 
+            timezone,
+            systemName: globalSettings.systemName,
+            language: globalSettings.language
+        }));
+    }, [timezone, globalSettings]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -28,28 +35,32 @@ const GeneralSettings = ({ onSave }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         setTimezone(settings.timezone);
+        updateSettings({
+            systemName: settings.systemName,
+            language: settings.language
+        });
         onSave(settings);
         setIsDirty(false);
     };
 
     return (
-        <Card title="General Settings">
+        <Card title={t('General Settings')}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                    label="System Name"
+                    label={t('System Name')}
                     name="systemName"
                     value={settings.systemName}
                     onChange={handleChange}
                 />
                 <Input
-                    label="Organization / Building Name"
+                    label={t('Organization / Building Name')}
                     name="orgName"
                     value={settings.orgName}
                     onChange={handleChange}
                 />
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timezone</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Timezone')}</label>
                     <select
                         name="timezone"
                         value={settings.timezone}
@@ -64,17 +75,19 @@ const GeneralSettings = ({ onSave }) => {
                 </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Language</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Language')}</label>
                     <select
                         name="language"
                         value={settings.language}
                         onChange={handleChange}
                         className="appearance-none block w-full px-3 py-3 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors duration-200"
                     >
-                        <option>English (US)</option>
-                        <option>Spanish</option>
-                        <option>French</option>
-                        <option>German</option>
+                        <option value="English (US)">English (US)</option>
+                        <option value="Malayalam">Malayalam</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Spanish">Spanish</option>
+                        <option value="Arabic">Arabic</option>
+                        <option value="French">French</option>
                     </select>
                 </div>
 
@@ -84,7 +97,7 @@ const GeneralSettings = ({ onSave }) => {
                         disabled={!isDirty}
                         className={`w-auto px-8 ${!isDirty ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        Save Changes
+                        {t('Save Changes')}
                     </Button>
                 </div>
             </form>

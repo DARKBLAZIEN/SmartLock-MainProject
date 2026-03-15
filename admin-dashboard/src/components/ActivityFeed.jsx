@@ -1,9 +1,11 @@
 import React from 'react';
 import { Package, User, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { useTimezone } from '../contexts/TimezoneContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const ActivityFeed = ({ activities }) => {
     const { formatInTimezone } = useTimezone();
+    const { t, translateDescription } = useSettings();
     const getIcon = (type) => {
         switch (type) {
             case 'DELIVERY': return <Package className="h-4 w-4" />;
@@ -31,7 +33,7 @@ const ActivityFeed = ({ activities }) => {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.07)'
             }}
         >
-            <h3 className="text-lg font-bold mb-6" style={{ color: 'var(--color-text-primary)' }}>Recent Activity</h3>
+            <h3 className="text-lg font-bold mb-6" style={{ color: 'var(--color-text-primary)' }}>{t('Recent Activity')}</h3>
             <div className="space-y-6">
                 {activities.slice(0, 5).map((activity, index) => (
                     <div key={activity.id} className="relative pl-8 pb-2 last:pb-0">
@@ -52,7 +54,9 @@ const ActivityFeed = ({ activities }) => {
                         </div>
 
                         <div className="flex flex-col">
-                            <span className="text-sm font-medium line-clamp-1" style={{ color: 'var(--color-text-primary)' }}>{activity.description}</span>
+                            <span className="text-sm font-medium line-clamp-1" style={{ color: 'var(--color-text-primary)' }}>
+                                {translateDescription(activity.description)}
+                            </span>
                             <span className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
                                 {formatInTimezone(activity.timestamp, false)}
                             </span>

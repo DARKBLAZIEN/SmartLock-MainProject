@@ -3,8 +3,10 @@ import Card from '../Card';
 import Input from '../Input';
 import Button from '../Button';
 import Toggle from '../Toggle';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const UserManagementSettings = ({ onSave }) => {
+    const { t } = useSettings();
     const [settings, setSettings] = useState({
         allowSelfReg: true,
         maxLockers: 2,
@@ -31,17 +33,17 @@ const UserManagementSettings = ({ onSave }) => {
     };
 
     return (
-        <Card title="User Management Settings">
+        <Card title={t('User Management Settings')}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <Toggle
-                    label="Allow Resident Self Registration"
-                    description="Residents can create their own accounts via the user app"
+                    label={t('Allow Resident Self Registration')}
+                    description={t('Residents can create their own accounts via the user app')}
                     enabled={settings.allowSelfReg}
                     setEnabled={(val) => handleToggle('allowSelfReg', val)}
                 />
 
                 <Input
-                    label="Maximum Lockers per Resident"
+                    label={t('Maximum Lockers per Resident')}
                     type="number"
                     name="maxLockers"
                     value={settings.maxLockers}
@@ -50,7 +52,7 @@ const UserManagementSettings = ({ onSave }) => {
                 />
 
                 <Input
-                    label="Resident Inactivity Timeout (days)"
+                    label={t('Resident Inactivity Timeout (days)')}
                     type="number"
                     name="inactivityTimeout"
                     value={settings.inactivityTimeout}
@@ -64,7 +66,7 @@ const UserManagementSettings = ({ onSave }) => {
                         disabled={!isDirty}
                         className={`w-auto px-8 ${!isDirty ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        Save Changes
+                        {t('Save Changes')}
                     </Button>
                 </div>
             </form>

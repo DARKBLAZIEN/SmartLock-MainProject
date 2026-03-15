@@ -3,9 +3,11 @@ import Card from '../Card';
 import Button from '../Button';
 import { Sun, Moon, Upload, Check } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const AppearanceSettings = ({ onSave }) => {
     const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme();
+    const { t } = useSettings();
     const [justApplied, setJustApplied] = useState(false);
     const [tempColor, setTempColor] = useState(primaryColor);
     const [logoUrl] = useState('/logo.png');
@@ -25,7 +27,7 @@ const AppearanceSettings = ({ onSave }) => {
     };
 
     return (
-        <Card title="Appearance Settings">
+        <Card title={t('Appearance Settings')}>
             <div className="space-y-6">
 
                 {/* ── Theme Selection ── */}
@@ -67,7 +69,7 @@ const AppearanceSettings = ({ onSave }) => {
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <Sun className="h-4 w-4" />
-                                <span className="font-semibold text-sm">Light</span>
+                                <span className="font-semibold text-sm">{t('Light')}</span>
                                 {theme === 'light' && <Check className="h-3.5 w-3.5" />}
                             </div>
                         </button>
@@ -98,19 +100,19 @@ const AppearanceSettings = ({ onSave }) => {
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <Moon className="h-4 w-4" />
-                                <span className="font-semibold text-sm">Dark</span>
+                                <span className="font-semibold text-sm">{t('Dark')}</span>
                                 {theme === 'dark' && <Check className="h-3.5 w-3.5" />}
                             </div>
                         </button>
                     </div>
                     <p className="mt-2 text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-                        Theme is applied instantly — no save required.
+                        {t('Theme is applied instantly — no save required.')}
                     </p>
                 </div>
 
                 {/* ── Primary Color ── */}
                 <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>Primary Color</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>{t('Primary Color')}</label>
                     <div className="flex items-center gap-4">
                         <input
                             type="color"
@@ -125,7 +127,7 @@ const AppearanceSettings = ({ onSave }) => {
 
                 {/* ── Organization Logo ── */}
                 <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>Organization Logo</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>{t('Organization Logo')}</label>
                     <div
                         className="flex items-center gap-6 p-5 rounded-2xl border-2 border-dashed transition-colors duration-200"
                         style={{ borderColor: 'var(--color-border-md)', backgroundColor: 'var(--color-bg-surface2)' }}
@@ -143,9 +145,9 @@ const AppearanceSettings = ({ onSave }) => {
                         </div>
                         <div className="flex-1">
                             <Button type="button" variant="outline" className="w-auto flex items-center gap-2">
-                                <Upload className="h-4 w-4" /> Change Logo
+                                <Upload className="h-4 w-4" /> {t('Change Logo')}
                             </Button>
-                            <p className="mt-2 text-xs" style={{ color: 'var(--color-text-subtle)' }}>PNG, JPG or SVG. Max 2MB.</p>
+                            <p className="mt-2 text-xs" style={{ color: 'var(--color-text-subtle)' }}>{t('PNG, JPG or SVG. Max 2MB.')}</p>
                         </div>
                     </div>
                 </div>
@@ -157,7 +159,7 @@ const AppearanceSettings = ({ onSave }) => {
                         onClick={handleSave}
                         className="w-auto px-8"
                     >
-                        Save Changes
+                        {t('Save Changes')}
                     </Button>
                 </div>
             </div>
