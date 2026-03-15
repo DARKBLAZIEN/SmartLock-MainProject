@@ -14,7 +14,9 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({});
     const [activities, setActivities] = useState([]);
+    const [rawWeeklyActivities, setRawWeeklyActivities] = useState([0, 0, 0, 0, 0, 0, 0]);
     const [weeklyActivities, setWeeklyActivities] = useState([0, 0, 0, 0, 0, 0, 0]);
+    const [timeframe, setTimeframe] = useState('This Week');
     const { searchQuery } = React.useContext(SearchContext);
     const { formatInTimezone } = useTimezone();
 
@@ -41,7 +43,7 @@ const Dashboard = () => {
                 });
 
                 const calcTrend = (curr, prev) => {
-                    if (prev === 0) return curr * 100;
+                    if (prev === 0) return curr > 0 ? 100 : 0;
                     return Math.round(((curr - prev) / prev) * 100);
                 };
 
@@ -85,31 +87,63 @@ const Dashboard = () => {
                     timestamp: item.timestamp
                 })));
 
-                // Calculate Weekly Activities for Graph
-                const last7Days = Array(7).fill(0);
+                // Calculate Weekly Activities for Graph (Calendar Weeks)
+                const counts = Array(7).fill(0);
                 
+                // Get Sunday of current week
+                const currentSun = new Date(now);
+                currentSun.setDate(now.getDate() - now.getDay());
+                currentSun.setHours(0, 0, 0, 0);
+
+                // Get Sunday of last week
+                const lastSun = new Date(currentSun);
+                lastSun.setDate(currentSun.getDate() - 7);
+                
+                // Get Saturday of last week
+                const lastSat = new Date(lastSun);
+                lastSat.setDate(lastSun.getDate() + 6);
+                lastSat.setHours(23, 59, 59, 999);
+
                 activityData.forEach(event => {
                     const eventDate = new Date(event.timestamp);
-                    const diffTime = Math.abs(now - eventDate);
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                     
-                    if (diffDays < 7) {
-                        const actualDayIndex = (now.getDay() - diffDays + 7) % 7;
-                        last7Days[actualDayIndex] += 1;
+                    if (timeframe === 'This Week') {
+                        // From Sunday till now
+                        if (eventDate >= currentSun && eventDate <= now) {
+                            counts[eventDate.getDay()] += 1;
+                        }
+                    } else {
+                        // Last Week (Sun to Sat)
+                        if (eventDate >= lastSun && eventDate <= lastSat) {
+                            counts[eventDate.getDay()] += 1;
+                        }
                     }
                 });
                 
-                const maxActivity = Math.max(...last7Days, 5); 
-                setWeeklyActivities(last7Days.map(count => (count / maxActivity) * 100));
+                setRawWeeklyActivities(counts);
+                const maxActivity = Math.max(...counts, 5); 
+                setWeeklyActivities(counts.map(count => (count / maxActivity) * 100));
+
+                // Debug logs
+                console.log('--- Dashboard Data Debug ---');
+                console.log('Total Events fetched:', activityData.length);
+                console.log('Timeframe:', timeframe);
+                console.log('Range Sun:', (timeframe === 'This Week' ? currentSun : lastSun).toISOString());
+                console.log('Range End:', (timeframe === 'This Week' ? now : lastSat).toISOString());
+                console.log('Counts:', counts);
+                console.log('---------------------------');
 
             } catch (error) {
                 console.error('Failed to load dashboard', error);
             } finally {
-                setLoading(false);
+                if (loading) setLoading(false);
             }
         };
+
         fetchData();
-    }, []);
+        const interval = setInterval(fetchData, 10000); // Polling every 10 seconds for real-time feel
+        return () => clearInterval(interval);
+    }, [settings.revenuePerPickup, timeframe]);
 
     if (loading) return <AdminLayout title={t('Overview')}><Loader text={t('Loading Dashboard...')} /></AdminLayout>;
 
@@ -167,18 +201,22 @@ const Dashboard = () => {
                 <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-200">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('Occupancy Trends')}</h3>
-                        <select className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 outline-none">
-                            <option>{t('This Week')}</option>
-                            <option>{t('Last Week')}</option>
+                        <select 
+                            value={timeframe}
+                            onChange={(e) => setTimeframe(e.target.value)}
+                            className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 outline-none cursor-pointer"
+                        >
+                            <option value="This Week">{t('This Week')}</option>
+                            <option value="Last Week">{t('Last Week')}</option>
                         </select>
                     </div>
 
                     {/* Real-time Activity Visualization */}
                     <div className="h-64 flex items-end justify-between px-2 gap-2">
                         {weeklyActivities.map((height, i) => (
-                            <div key={i} className="w-full flex flex-col items-center gap-2 group cursor-pointer">
+                            <div key={i} className="w-full h-full flex flex-col items-center gap-2 group cursor-pointer">
                                 <div
-                                    className="relative w-full rounded-t-lg overflow-hidden h-full"
+                                    className="relative w-full flex-1 rounded-t-lg overflow-hidden"
                                     style={{ backgroundColor: 'var(--color-bg-surface2)' }}
                                 >
                                     <div
@@ -188,7 +226,7 @@ const Dashboard = () => {
                                     {/* Tooltip */}
                                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <span className="bg-gray-900 text-white text-[10px] py-1 px-2 rounded -mt-12 backdrop-blur-md">
-                                            {height > 0 ? `${Math.round(height/10)} ${t('Events')}` : t('No Activity')}
+                                            {rawWeeklyActivities[i] > 0 ? `${rawWeeklyActivities[i]} ${t('Events')}` : t('No Activity')}
                                         </span>
                                     </div>
                                 </div>
