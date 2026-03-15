@@ -6,11 +6,11 @@ import ActivityFeed from '../components/ActivityFeed';
 import { lockerApi } from '../api/locker.api';
 import Loader from '../components/Loader';
 import { SearchContext } from '../contexts/SearchContext';
-import { useTimezone } from '../contexts/TimezoneContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useTimezone } from '../contexts/TimezoneContext';
 
 const Dashboard = () => {
-    const { t } = useSettings();
+    const { t, settings } = useSettings();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({});
     const [activities, setActivities] = useState([]);
@@ -45,27 +45,29 @@ const Dashboard = () => {
                     return Math.round(((curr - prev) / prev) * 100);
                 };
 
+                const revenuePerPickup = settings.revenuePerPickup || 5.50;
+
                 // Current Stats
                 const currDeliveries = currentMonthEvents.filter(a => a.type === 'DELIVERY').length;
                 const currPickups = currentMonthEvents.filter(a => a.type === 'PICKUP').length;
-                const currRevenue = currPickups * 5.50;
+                const currRevenue = currPickups * revenuePerPickup;
                 const currEfficiency = totalCount > 0 ? Math.round(((totalCount - occupiedCount) / totalCount) * 100) : 100;
                 const currIssues = currentMonthEvents.filter(a => a.type === 'SYSTEM_ALERT').length;
-
+ 
                 const lastDeliveries = lastMonthEvents.filter(a => a.type === 'DELIVERY').length;
                 const lastPickups = lastMonthEvents.filter(a => a.type === 'PICKUP').length;
-                const lastRevenue = lastPickups * 5.50;
+                const lastRevenue = lastPickups * revenuePerPickup;
                 const lastIssues = lastMonthEvents.filter(a => a.type === 'SYSTEM_ALERT').length;
-
+ 
                 // Estimate Last Month Efficiency (State exactly 30 days ago)
                 // We calculate net change in occupancy over the last 30 days
                 const netChangeLast30Days = currDeliveries - currPickups;
                 const occupancy30DaysAgo = Math.max(0, occupiedCount - netChangeLast30Days);
                 const efficiency30DaysAgo = totalCount > 0 ? Math.round(((totalCount - occupancy30DaysAgo) / totalCount) * 100) : 100;
-
+ 
                 setStats({
                     todaysDeliveries: currDeliveries,
-                    revenue: activityData.filter(a => a.type === 'PICKUP').length * 5.50, // Total Revenue
+                    revenue: activityData.filter(a => a.type === 'PICKUP').length * revenuePerPickup, // Total Revenue
                     weeklyEfficiency: currEfficiency,
                     activeIssues: currIssues,
                     trends: {

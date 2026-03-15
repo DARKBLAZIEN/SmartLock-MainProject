@@ -166,7 +166,10 @@ const translations = {
         'desc_admin_open': 'Locker door opened by administrator override',
         'desc_close': 'Locker door closed and secured',
         'desc_alert': 'System Alert: Irregular activity detected on unit {lockerId}',
-        'No description provided': 'No description provided'
+        'No description provided': 'No description provided',
+        'Revenue per Pickup ($)': 'Revenue per Pickup ($)',
+        'Revenue Settings': 'Revenue Settings',
+        'Amount earned per successful package pickup': 'Amount earned per successful package pickup'
     },
     'Malayalam': {
         'Overview': 'അവലോകനം',
@@ -331,7 +334,10 @@ const translations = {
         'desc_admin_open': 'അഡ്മിനിസ്ട്രേറ്റർ ഓവർറൈഡ് വഴി ലോക്കർ വാതിൽ തുറന്നു',
         'desc_close': 'ലോക്കർ വാതിൽ അടച്ചു സുരക്ഷിതമാക്കി',
         'desc_alert': 'സിസ്റ്റം അലേർട്ട്: യൂണിറ്റ് {lockerId}-ൽ അസാധാരണമായ പ്രവർത്തനം കണ്ടെത്തി',
-        'No description provided': 'വിവരണം നൽകിയിട്ടില്ല'
+        'No description provided': 'വിവരണം നൽകിയിട്ടില്ല',
+        'Revenue per Pickup ($)': 'ഓരോ പിക്കപ്പിനും ലഭിക്കുന്ന വരുമാനം ($)',
+        'Revenue Settings': 'വരുമാന ക്രമീകരണങ്ങൾ',
+        'Amount earned per successful package pickup': 'ഓരോ വിജയകരമായ പാക്കേജ് പിക്കപ്പിനും ലഭിക്കുന്ന തുക'
     },
     'Hindi': {
         'Overview': 'अवलोकन',
@@ -496,7 +502,10 @@ const translations = {
         'desc_admin_open': 'व्यवस्थापक ओवरराइड द्वारा लॉकर का दरवाजा खोला गया',
         'desc_close': 'लॉकर का दरवाजा बंद और सुरक्षित',
         'desc_alert': 'सिस्टम अलर्ट: यूनिट {lockerId} पर अनियमित गतिविधि का पता चला',
-        'No description provided': 'कोई विवरण प्रदान नहीं किया गया'
+        'No description provided': 'कोई विवरण प्रदान नहीं किया गया',
+        'Revenue per Pickup ($)': 'प्रति पिकअप राजस्व ($)',
+        'Revenue Settings': 'राजस्व सेटिंग्स',
+        'Amount earned per successful package pickup': 'प्रत्येक सफल पैकेज पिकअप पर अर्जित राशि'
     },
     'Spanish': {
         'Overview': 'Resumen',
@@ -661,7 +670,10 @@ const translations = {
         'desc_admin_open': 'Puerta del casillero abierta por anulación del administrador',
         'desc_close': 'Puerta del casillero cerrada y asegurada',
         'desc_alert': 'Alerta del sistema: actividad irregular detectada en la unidad {lockerId}',
-        'No description provided': 'No se proporcionó descripción'
+        'No description provided': 'No se proporcionó descripción',
+        'Revenue per Pickup ($)': 'Ingresos por recogida ($)',
+        'Revenue Settings': 'Ajustes de ingresos',
+        'Amount earned per successful package pickup': 'Cantidad ganada por cada recogida de paquete exitosa'
     },
     'Arabic': {
         'Overview': 'نظرة عامة',
@@ -826,7 +838,10 @@ const translations = {
         'desc_admin_open': 'تم فتح باب الخزانة عن طريق تجاوز المسؤول',
         'desc_close': 'باب الخزانة مغلق ومؤمن',
         'desc_alert': 'تنبيه النظام: تم اكتشاف نشاط غير عادي في الوحدة {lockerId}',
-        'No description provided': 'لم يتم تقديم وصف'
+        'No description provided': 'لم يتم تقديم وصف',
+        'Revenue per Pickup ($)': 'الإيرادات لكل استلام ($)',
+        'Revenue Settings': 'إعدادات الإيرادات',
+        'Amount earned per successful package pickup': 'المبلغ المكتسب لكل عملية استلام طرد ناجحة'
     },
     'French': {
         'Overview': 'Aperçu',
@@ -991,7 +1006,10 @@ const translations = {
         'desc_admin_open': 'Porte du casier ouverte par dérogation de l\'administrateur',
         'desc_close': 'Porte du casier fermée et sécurisée',
         'desc_alert': 'Alerte système : activité irrégulière détectée sur l\'unité {lockerId}',
-        'No description provided': 'Aucune description fournie'
+        'No description provided': 'Aucune description fournie',
+        'Revenue per Pickup ($)': 'Revenu par collecte ($)',
+        'Revenue Settings': 'Paramètres de revenus',
+        'Amount earned per successful package pickup': 'Montant gagné pour chaque collecte de colis réussie'
     }
 };
 
@@ -1000,7 +1018,8 @@ export const SettingsProvider = ({ children }) => {
         const saved = localStorage.getItem('smartlock_settings');
         return saved ? JSON.parse(saved) : {
             systemName: 'SmartLock Pro',
-            language: 'English (US)'
+            language: 'English (US)',
+            revenuePerPickup: 5.50
         };
     });
 
