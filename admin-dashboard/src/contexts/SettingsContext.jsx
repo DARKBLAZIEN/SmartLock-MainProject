@@ -169,7 +169,8 @@ const translations = {
         'No description provided': 'No description provided',
         'Revenue per Pickup ($)': 'Revenue per Pickup ($)',
         'Revenue Settings': 'Revenue Settings',
-        'Amount earned per successful package pickup': 'Amount earned per successful package pickup'
+        'Amount earned per successful package pickup': 'Amount earned per successful package pickup',
+        'Download Logo': 'Download Logo'
     },
     'Malayalam': {
         'Overview': 'അവലോകനം',
@@ -337,7 +338,8 @@ const translations = {
         'No description provided': 'വിവരണം നൽകിയിട്ടില്ല',
         'Revenue per Pickup ($)': 'ഓരോ പിക്കപ്പിനും ലഭിക്കുന്ന വരുമാനം ($)',
         'Revenue Settings': 'വരുമാന ക്രമീകരണങ്ങൾ',
-        'Amount earned per successful package pickup': 'ഓരോ വിജയകരമായ പാക്കേജ് പിക്കപ്പിനും ലഭിക്കുന്ന തുക'
+        'Amount earned per successful package pickup': 'ഓരോ വിജയകരമായ പാക്കേജ് പിക്കപ്പിനും ലഭിക്കുന്ന തുക',
+        'Download Logo': 'ലോഗോ ഡൗൺലോഡ് ചെയ്യുക'
     },
     'Hindi': {
         'Overview': 'अवलोकन',
@@ -505,7 +507,8 @@ const translations = {
         'No description provided': 'कोई विवरण प्रदान नहीं किया गया',
         'Revenue per Pickup ($)': 'प्रति पिकअप राजस्व ($)',
         'Revenue Settings': 'राजस्व सेटिंग्स',
-        'Amount earned per successful package pickup': 'प्रत्येक सफल पैकेज पिकअप पर अर्जित राशि'
+        'Amount earned per successful package pickup': 'प्रत्येक सफल पैकेज पिकअप पर अर्जित राशि',
+        'Download Logo': 'लोगो डाउनलोड करें'
     },
     'Spanish': {
         'Overview': 'Resumen',
@@ -673,7 +676,8 @@ const translations = {
         'No description provided': 'No se proporcionó descripción',
         'Revenue per Pickup ($)': 'Ingresos por recogida ($)',
         'Revenue Settings': 'Ajustes de ingresos',
-        'Amount earned per successful package pickup': 'Cantidad ganada por cada recogida de paquete exitosa'
+        'Amount earned per successful package pickup': 'Cantidad ganada por cada recogida de paquete exitosa',
+        'Download Logo': 'Descargar logo'
     },
     'Arabic': {
         'Overview': 'نظرة عامة',
@@ -1009,7 +1013,8 @@ const translations = {
         'No description provided': 'Aucune description fournie',
         'Revenue per Pickup ($)': 'Revenu par collecte ($)',
         'Revenue Settings': 'Paramètres de revenus',
-        'Amount earned per successful package pickup': 'Montant gagné pour chaque collecte de colis réussie'
+        'Amount earned per successful package pickup': 'Montant gagné pour chaque collecte de colis réussie',
+        'Download Logo': 'Télécharger le logo'
     }
 };
 
@@ -1019,7 +1024,8 @@ export const SettingsProvider = ({ children }) => {
         return saved ? JSON.parse(saved) : {
             systemName: 'SmartLock Pro',
             language: 'English (US)',
-            revenuePerPickup: 5.50
+            revenuePerPickup: 5.50,
+            customLogo: null
         };
     });
 

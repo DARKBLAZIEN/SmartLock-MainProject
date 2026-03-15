@@ -4,7 +4,8 @@ import { LayoutDashboard, Box, Users, Activity, Settings, LogOut } from 'lucide-
 import { useSettings } from '../contexts/SettingsContext';
 
 const Sidebar = () => {
-    const { settings, t } = useSettings();
+    const { settings, updateSettings, t } = useSettings();
+
     const navItems = [
         { icon: LayoutDashboard, label: t('Overview'), path: '/' },
         { icon: Box, label: t('Lockers'), path: '/lockers' },
@@ -23,13 +24,18 @@ const Sidebar = () => {
         >
             <div className="p-6 flex items-center gap-3">
                 <div
-                    className="h-10 w-10 rounded-xl flex items-center justify-center shadow-lg"
+                    className="h-10 w-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden"
                     style={{
-                        background: 'linear-gradient(135deg, var(--color-accent), var(--color-accent))',
-                        boxShadow: '0 10px 15px -3px var(--color-accent-light)'
+                        background: settings.customLogo ? 'var(--color-bg-surface)' : 'linear-gradient(135deg, var(--color-accent), var(--color-accent))',
+                        boxShadow: '0 10px 15px -3px var(--color-accent-light)',
+                        border: settings.customLogo ? '1px solid var(--color-border)' : 'none'
                     }}
                 >
-                    <Box className="h-6 w-6" style={{ color: 'var(--color-accent-contrast)' }} />
+                    {settings.customLogo ? (
+                        <img src={settings.customLogo} alt="Logo" className="h-full w-full object-contain" />
+                    ) : (
+                        <Box className="h-6 w-6" style={{ color: 'var(--color-accent-contrast)' }} />
+                    )}
                 </div>
                 <div>
                     <h1 className="text-xl font-bold truncate max-w-[150px]" title={settings.systemName} style={{ color: 'var(--color-text-primary)' }}>
