@@ -347,6 +347,14 @@ router.post("/locker/open", async (req, res) => {
 
     locker.isOpen = true;
     await locker.save();
+
+    const io = req.app.get("io");
+    io.emit("openLocker", { lockerId });
+
+    // Auto-close after 5 seconds
+    setTimeout(() => {
+      io.emit("closeLocker", { lockerId });
+    }, 5000);
     
     await new Event({
       type: 'ADMIN_OVERRIDE',
@@ -370,6 +378,9 @@ router.post("/locker/close", async (req, res) => {
 
     locker.isOpen = false;
     await locker.save();
+
+    const io = req.app.get("io");
+    io.emit("closeLocker", { lockerId });
     
     await new Event({
       type: 'CLOSE',
