@@ -12,8 +12,8 @@ const router = express.Router();
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER, // Your Gmail
-    pass: process.env.EMAIL_PASS, // Your Gmail App Password
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
@@ -79,17 +79,14 @@ router.post("/register-otp", async (req, res) => {
     const { gmail } = req.body;
     if (!gmail) return res.status(400).json({ success: false, message: "Email is required" });
 
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Save/Update OTP in DB
     await RegistrationOTP.findOneAndUpdate(
       { gmail: gmail.toLowerCase() },
       { otp, createdAt: new Date() },
       { upsert: true, new: true }
     );
 
-    // Send Email
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: gmail,
@@ -107,7 +104,7 @@ router.post("/register-otp", async (req, res) => {
   }
 });
 
-// Register a new Apartment (Resident) - Now with OTP Verification
+// Register Apartment
 router.post("/register", async (req, res) => {
   try {
     console.log("Register Request Body:", req.body);
@@ -117,13 +114,11 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ success: false, message: "OTP is required" });
     }
 
-    // 1. Verify OTP
     const otpRecord = await RegistrationOTP.findOne({ gmail: gmail.toLowerCase() });
     if (!otpRecord || otpRecord.otp !== otp) {
       return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
     }
 
-    // 2. Check if Apartment ID exists
     const existing = await Apartment.findOne({ apartmentId });
     if (existing) {
       return res.status(400).json({ success: false, message: "Apartment ID already exists" });
@@ -137,7 +132,6 @@ router.post("/register", async (req, res) => {
 
     await newApartment.save();
 
-    // 3. Clean up OTP
     await RegistrationOTP.deleteOne({ gmail: gmail.toLowerCase() });
 
     res.status(201).json({ success: true, message: "Resident added successfully" });
@@ -152,44 +146,44 @@ router.post("/delivery", async (req, res) => {
     const { apartmentId } = req.body;
     console.log(`[Delivery] Request for Apt: ${apartmentId}`);
 
-    // 1. Check if Apartment exists
     const apartment = await Apartment.findOne({ apartmentId });
     if (!apartment) {
-      console.log(`[Delivery] Apartment ${apartmentId} not found`);
       return res.status(404).json({ success: false, message: "Apartment not found" });
     }
 
-    // 2. Find an available locker
-    const allLockers = await Locker.find();
-    console.log(`[Delivery] Total Lockers in DB: ${allLockers.length}`);
-
     const freeLocker = await Locker.findOne({ isFree: true });
     if (!freeLocker) {
-      console.log("[Delivery] No free lockers found");
       return res.status(400).json({ success: false, message: "No lockers available" });
     }
-    console.log(`[Delivery] Found free locker: ${freeLocker.lockerId}`);
 
-    // 3. Generate 6-digit OTP
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log("********************************");
-    console.log("GENERATED OTP FOR PICKUP:", generatedOtp);
-    console.log("********************************");
 
-    // 4. Save the Delivery Log
     const newLog = new DeliveryLog({
       apartmentId: apartment.apartmentId,
       lockerId: freeLocker.lockerId,
       otp: generatedOtp,
     });
+
     await newLog.save();
 
-    // 5. Update Locker Status to Occupied and OPEN
+
     freeLocker.isFree = false;
     freeLocker.isOpen = true; // Simulating physical unlock
     await freeLocker.save();
 
-    // 6. Send Email
+    const io = req.app.get("io");
+
+    io.emit("openLocker", {
+      lockerId: freeLocker.lockerId
+    });
+
+    // AUTO CLOSE AFTER 5 SECONDS
+    setTimeout(() => {
+      io.emit("closeLocker", {
+        lockerId: freeLocker.lockerId
+      });
+    }, 5000);
+
     try {
       const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -200,8 +194,7 @@ router.post("/delivery", async (req, res) => {
 
       await transporter.sendMail(mailOptions);
     } catch (emailError) {
-      console.error("Email failed to send (CHECK .ENV CREDENTIALS):", emailError.message);
-      // Continue execution - do not fail the request just because email failed
+      console.error("Email failed:", emailError.message);
     }
 
     // 7. Log Event
@@ -226,13 +219,10 @@ router.post("/delivery", async (req, res) => {
 
 const PickupLog = require("../models/PickupLog");
 
-
-
 router.post("/pickup", async (req, res) => {
   try {
-    const { apartmentId, passcode } = req.body; // passcode is the OTP from the email
+    const { apartmentId, passcode } = req.body;
 
-    // 1. Find the active delivery log matching ID and OTP
     const activeDelivery = await DeliveryLog.findOne({
       apartmentId,
       otp: passcode,
@@ -246,25 +236,36 @@ router.post("/pickup", async (req, res) => {
       });
     }
 
-    // 2. Mark delivery as completed
     activeDelivery.isPickedUp = true;
     await activeDelivery.save();
 
-    // 3. Update the locker to be FREE and OPEN again
+
     await Locker.findOneAndUpdate(
       { lockerId: activeDelivery.lockerId },
       { isFree: true, isOpen: true } // Simulating physical unlock
     );
 
-    // 4. Create a permanent Pickup Log for history
+    const io = req.app.get("io");
+
+    io.emit("openLocker", {
+      lockerId: activeDelivery.lockerId
+    });
+
+    setTimeout(() => {
+      io.emit("closeLocker", {
+        lockerId: activeDelivery.lockerId
+      });
+    }, 5000);
+
     const history = new PickupLog({
       apartmentId: activeDelivery.apartmentId,
       lockerId: activeDelivery.lockerId,
     });
+
     await history.save();
 
-    // 5. Send Pickup Confirmation Email (Optional but recommended)
     const apartment = await Apartment.findOne({ apartmentId });
+
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: apartment.gmail,
@@ -291,6 +292,7 @@ router.post("/pickup", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
 
 // Update Resident
 router.put("/:id", async (req, res) => {
