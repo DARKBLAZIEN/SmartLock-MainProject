@@ -4,6 +4,8 @@ const Apartment = require("../models/Apartment");
 const Locker = require("../models/Locker");
 const DeliveryLog = require("../models/DeliveryLog");
 const RegistrationOTP = require("../models/RegistrationOTP");
+const Event = require("../models/Event"); // Added from GitHub
+const PickupLog = require("../models/PickupLog");
 
 const router = express.Router();
 
@@ -16,7 +18,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Get all apartments
+// --- APARTMENT MANAGEMENT ---
 router.get("/", async (req, res) => {
   try {
     const apartments = await Apartment.find();
@@ -27,8 +29,6 @@ router.get("/", async (req, res) => {
 });
 
 // --- LOCKER MANAGEMENT ---
-
-// Get all lockers
 router.get("/lockers", async (req, res) => {
   try {
     const lockers = await Locker.find();
@@ -38,7 +38,6 @@ router.get("/lockers", async (req, res) => {
   }
 });
 
-// Add a new locker
 router.post("/locker", async (req, res) => {
   try {
     const { lockerId } = req.body;
@@ -50,7 +49,6 @@ router.post("/locker", async (req, res) => {
   }
 });
 
-// Update Locker Status (Reset)
 router.put("/locker/reset", async (req, res) => {
   try {
     const { lockerId } = req.body;
@@ -58,95 +56,31 @@ router.put("/locker/reset", async (req, res) => {
     if (!locker) return res.status(404).json({ success: false });
 
     locker.isFree = true;
+    locker.isOpen = false; // GitHub logic
     await locker.save();
+
+    // GitHub Event Logging
+    await new Event({
+      type: 'ADMIN_OVERRIDE',
+      description: `Locker ${lockerId} manually reset by administrator`,
+      lockerId: lockerId
+    }).save();
+
     res.status(200).json({ success: true, message: "Locker reset successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// Send OTP for Register
-router.post("/register-otp", async (req, res) => {
-  try {
-    const { gmail } = req.body;
-    if (!gmail) return res.status(400).json({ success: false, message: "Email is required" });
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    await RegistrationOTP.findOneAndUpdate(
-      { gmail: gmail.toLowerCase() },
-      { otp, createdAt: new Date() },
-      { upsert: true, new: true }
-    );
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: gmail,
-      subject: "Registration OTP for SmartLock",
-      text: `Your OTP for resident registration is: ${otp}. This code will expire in 10 minutes.`,
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log(`[Register OTP] Sent to ${gmail}: ${otp}`);
-
-    res.status(200).json({ success: true, message: "OTP sent to your email" });
-  } catch (error) {
-    console.error("Register OTP error:", error);
-    res.status(500).json({ success: false, message: "Failed to send OTP" });
-  }
-});
-
-// Register Apartment
-router.post("/register", async (req, res) => {
-  try {
-    console.log("Register Request Body:", req.body);
-    const { apartmentId, nameOfOwner, gmail, otp } = req.body;
-
-    if (!otp) {
-      return res.status(400).json({ success: false, message: "OTP is required" });
-    }
-
-    const otpRecord = await RegistrationOTP.findOne({ gmail: gmail.toLowerCase() });
-    if (!otpRecord || otpRecord.otp !== otp) {
-      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
-    }
-
-    const existing = await Apartment.findOne({ apartmentId });
-    if (existing) {
-      return res.status(400).json({ success: false, message: "Apartment ID already exists" });
-    }
-
-    const newApartment = new Apartment({
-      apartmentId,
-      nameOfOwner,
-      gmail,
-    });
-
-    await newApartment.save();
-
-    await RegistrationOTP.deleteOne({ gmail: gmail.toLowerCase() });
-
-    res.status(201).json({ success: true, message: "Resident added successfully" });
-  } catch (error) {
-    console.error("Register error:", error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
+// --- DELIVERY ROUTE (MERGED) ---
 router.post("/delivery", async (req, res) => {
   try {
     const { apartmentId } = req.body;
-    console.log(`[Delivery] Request for Apt: ${apartmentId}`);
-
     const apartment = await Apartment.findOne({ apartmentId });
-    if (!apartment) {
-      return res.status(404).json({ success: false, message: "Apartment not found" });
-    }
+    if (!apartment) return res.status(404).json({ success: false, message: "Apartment not found" });
 
     const freeLocker = await Locker.findOne({ isFree: true });
-    if (!freeLocker) {
-      return res.status(400).json({ success: false, message: "No lockers available" });
-    }
+    if (!freeLocker) return res.status(400).json({ success: false, message: "No lockers available" });
 
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -155,114 +89,116 @@ router.post("/delivery", async (req, res) => {
       lockerId: freeLocker.lockerId,
       otp: generatedOtp,
     });
-
     await newLog.save();
 
+    // Update state (GitHub logic)
     freeLocker.isFree = false;
+    freeLocker.isOpen = true; 
     await freeLocker.save();
 
+    // Unity Simulation (Your Logic)
     const io = req.app.get("io");
+    if (io) {
+      io.emit("openLocker", { lockerId: freeLocker.lockerId });
+      setTimeout(() => {
+        io.emit("closeLocker", { lockerId: freeLocker.lockerId });
+      }, 5000);
+    }
 
-    io.emit("openLocker", {
-      lockerId: freeLocker.lockerId
-    });
-
-    // AUTO CLOSE AFTER 5 SECONDS
-    setTimeout(() => {
-      io.emit("closeLocker", {
-        lockerId: freeLocker.lockerId
-      });
-    }, 5000);
-
+    // Email logic
     try {
-      const mailOptions = {
+      await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: apartment.gmail,
         subject: "Package Delivery Notification",
         text: `Hello ${apartment.nameOfOwner}, a delivery has been placed in locker ${freeLocker.lockerId}. Your OTP is: ${generatedOtp}`,
-      };
+      });
+    } catch (e) { console.error("Email failed:", e.message); }
 
-      await transporter.sendMail(mailOptions);
-    } catch (emailError) {
-      console.error("Email failed:", emailError.message);
-    }
+    // Log Event (GitHub logic)
+    await new Event({
+      type: 'DELIVERY',
+      description: `New package for ${apartment.nameOfOwner} in Locker ${freeLocker.lockerId}`,
+      lockerId: freeLocker.lockerId,
+      apartmentId: apartment.apartmentId
+    }).save();
 
     return res.status(200).json({
       success: true,
       nameOfOwner: apartment.nameOfOwner,
       lockerId: freeLocker.lockerId
     });
-
   } catch (error) {
-    console.error("Delivery error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-const PickupLog = require("../models/PickupLog");
-
+// --- PICKUP ROUTE (MERGED) ---
 router.post("/pickup", async (req, res) => {
   try {
     const { apartmentId, passcode } = req.body;
-
     const activeDelivery = await DeliveryLog.findOne({
       apartmentId,
       otp: passcode,
       isPickedUp: false
     });
 
-    if (!activeDelivery) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid Apartment ID or Passcode"
-      });
-    }
+    if (!activeDelivery) return res.status(401).json({ success: false, message: "Invalid Passcode" });
 
     activeDelivery.isPickedUp = true;
     await activeDelivery.save();
 
     await Locker.findOneAndUpdate(
       { lockerId: activeDelivery.lockerId },
-      { isFree: true }
+      { isFree: true, isOpen: true }
     );
 
+    // Unity Simulation (Your Logic)
     const io = req.app.get("io");
-
-    io.emit("openLocker", {
-      lockerId: activeDelivery.lockerId
-    });
-
-    setTimeout(() => {
-      io.emit("closeLocker", {
-        lockerId: activeDelivery.lockerId
-      });
-    }, 5000);
+    if (io) {
+      io.emit("openLocker", { lockerId: activeDelivery.lockerId });
+      setTimeout(() => {
+        io.emit("closeLocker", { lockerId: activeDelivery.lockerId });
+      }, 5000);
+    }
 
     const history = new PickupLog({
       apartmentId: activeDelivery.apartmentId,
       lockerId: activeDelivery.lockerId,
     });
-
     await history.save();
 
-    const apartment = await Apartment.findOne({ apartmentId });
+    // Log Event (GitHub logic)
+    await new Event({
+      type: 'PICKUP',
+      description: `Package collected by resident of Apt ${apartmentId}`,
+      lockerId: activeDelivery.lockerId,
+      apartmentId: apartmentId
+    }).save();
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: apartment.gmail,
-      subject: "Package Collected",
-      text: `Hello ${apartment.nameOfOwner}, your package in locker ${activeDelivery.lockerId} has been successfully collected.`
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Locker Unlocked! Please collect your package."
-    });
-
+    res.status(200).json({ success: true, message: "Locker Unlocked!" });
   } catch (error) {
-    console.error("Pickup error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
+});
+
+// --- NEW GITHUB FEATURES (SIMULATION & EVENTS) ---
+router.post("/locker/open", async (req, res) => {
+  try {
+    const { lockerId } = req.body;
+    const locker = await Locker.findOne({ lockerId });
+    if (!locker) return res.status(404).json({ success: false });
+    locker.isOpen = true;
+    await locker.save();
+    res.status(200).json({ success: true, message: "Locker opened" });
+  } catch (error) { res.status(500).json({ success: false }); }
+});
+
+router.get("/events", async (req, res) => {
+  try {
+    const events = await Event.find().sort({ timestamp: -1 }).limit(100);
+    res.status(200).json(events);
+  } catch (error) { res.status(500).json({ success: false }); }
 });
 
 module.exports = router;
