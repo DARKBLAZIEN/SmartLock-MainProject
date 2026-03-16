@@ -8,6 +8,7 @@ import HardwareSettings from '../components/settings/HardwareSettings';
 import UserManagementSettings from '../components/settings/UserManagementSettings';
 import AppearanceSettings from '../components/settings/AppearanceSettings';
 import { SearchContext } from '../contexts/SearchContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const tabs = [
     { id: 'general', label: 'General' },
@@ -23,6 +24,7 @@ const SettingsPage = () => {
     const [activeTab, setActiveTab] = useState('general');
     const [toast, setToast] = useState({ show: false, message: '' });
     const { searchQuery } = React.useContext(SearchContext);
+    const { t } = useSettings();
 
     const filteredTabs = tabs.filter(tab => {
         if (!searchQuery) return true;
@@ -43,19 +45,19 @@ const SettingsPage = () => {
 
     const renderTabContent = () => {
         switch (activeTab) {
-            case 'general': return <GeneralSettings onSave={() => showToast('General settings saved!')} />;
-            case 'locker': return <LockerConfiguration onSave={() => showToast('Locker configuration saved!')} />;
-            case 'security': return <SecuritySettings onSave={() => showToast('Security settings saved!')} />;
-            case 'notifications': return <NotificationSettings onSave={() => showToast('Notification settings saved!')} />;
-            case 'hardware': return <HardwareSettings onSave={() => showToast('Hardware settings saved!')} />;
-            case 'users': return <UserManagementSettings onSave={() => showToast('User management settings saved!')} />;
-            case 'appearance': return <AppearanceSettings onSave={() => showToast('Appearance settings saved!')} />;
+            case 'general': return <GeneralSettings onSave={() => showToast(t('General settings saved!'))} />;
+            case 'locker': return <LockerConfiguration onSave={() => showToast(t('Locker configuration saved!'))} />;
+            case 'security': return <SecuritySettings onSave={() => showToast(t('Security settings saved!'))} />;
+            case 'notifications': return <NotificationSettings onSave={() => showToast(t('Notification settings saved!'))} />;
+            case 'hardware': return <HardwareSettings onSave={() => showToast(t('Hardware settings saved!'))} />;
+            case 'users': return <UserManagementSettings onSave={() => showToast(t('User management settings saved!'))} />;
+            case 'appearance': return <AppearanceSettings onSave={() => showToast(t('Appearance settings saved!'))} />;
             default: return null;
         }
     };
 
     return (
-        <AdminLayout title="Settings">
+        <AdminLayout title={t('Settings')}>
             <div className="flex flex-col md:flex-row gap-8">
                 {/* Tab Navigation Sidebar */}
                 <div className="w-full md:w-56 flex-shrink-0">
@@ -72,9 +74,10 @@ const SettingsPage = () => {
                                 onClick={() => setActiveTab(tab.id)}
                                 className="w-full text-left px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium mb-1 last:mb-0"
                                 style={{
-                                    backgroundColor: activeTab === tab.id ? 'var(--color-accent-light)' : 'transparent',
-                                    color: activeTab === tab.id ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                                    backgroundColor: activeTab === tab.id ? 'var(--color-accent)' : 'transparent',
+                                    color: activeTab === tab.id ? 'var(--color-accent-contrast)' : 'var(--color-text-muted)',
                                     fontWeight: activeTab === tab.id ? '600' : '500',
+                                    boxShadow: activeTab === tab.id ? '0 4px 12px var(--color-accent-light)' : 'none',
                                 }}
                                 onMouseEnter={e => {
                                     if (activeTab !== tab.id) {
@@ -89,7 +92,7 @@ const SettingsPage = () => {
                                     }
                                 }}
                             >
-                                {tab.label}
+                                {t(tab.label)}
                             </button>
                         ))}
                         {filteredTabs.length === 0 && (

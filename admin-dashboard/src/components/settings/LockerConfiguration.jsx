@@ -3,8 +3,10 @@ import Card from '../Card';
 import Input from '../Input';
 import Button from '../Button';
 import Toggle from '../Toggle';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const LockerConfiguration = ({ onSave }) => {
+    const { t } = useSettings();
     const [settings, setSettings] = useState({
         autoLockDelay: 30,
         unlockDuration: 10,
@@ -33,10 +35,10 @@ const LockerConfiguration = ({ onSave }) => {
     };
 
     return (
-        <Card title="Locker Configuration">
+        <Card title={t('Locker Configuration')}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                    label="Auto Lock Delay (seconds)"
+                    label={t('Auto Lock Delay (seconds)')}
                     type="number"
                     name="autoLockDelay"
                     value={settings.autoLockDelay}
@@ -44,7 +46,7 @@ const LockerConfiguration = ({ onSave }) => {
                     min="1"
                 />
                 <Input
-                    label="Unlock Duration (seconds)"
+                    label={t('Unlock Duration (seconds)')}
                     type="number"
                     name="unlockDuration"
                     value={settings.unlockDuration}
@@ -52,7 +54,7 @@ const LockerConfiguration = ({ onSave }) => {
                     min="1"
                 />
                 <Input
-                    label="Door Open Timeout (seconds)"
+                    label={t('Door Open Timeout (seconds)')}
                     type="number"
                     name="doorOpenTimeout"
                     value={settings.doorOpenTimeout}
@@ -61,8 +63,8 @@ const LockerConfiguration = ({ onSave }) => {
                 />
 
                 <Toggle
-                    label="Enable Auto-lock"
-                    description="Automatically lock the door after the delay period"
+                    label={t('Enable Auto-lock')}
+                    description={t('Automatically lock the door after the delay period')}
                     enabled={settings.enableAutoLock}
                     setEnabled={(val) => handleToggle('enableAutoLock', val)}
                 />
@@ -73,7 +75,7 @@ const LockerConfiguration = ({ onSave }) => {
                         disabled={!isDirty}
                         className={`w-auto px-8 ${!isDirty ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        Save Changes
+                        {t('Save Changes')}
                     </Button>
                 </div>
             </form>

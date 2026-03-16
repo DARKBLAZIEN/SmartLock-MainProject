@@ -58,6 +58,82 @@
   animation: fade-up 0.5s ease-out 1.6s forwards;
 }
 
+/* Locker Animation Styles */
+.locker-container {
+  perspective: 1000px;
+  width: 160px;
+  height: 200px;
+  margin: 0 auto;
+}
+
+.locker-door {
+  width: 100%;
+  height: 100%;
+  background: #cbd5e1; /* slate-300 */
+  border: 4px solid #94a3b8; /* slate-400 */
+  border-radius: 8px;
+  position: relative;
+  transform-origin: left;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  z-index: 20;
+}
+
+.locker-door.is-open {
+  transform: rotateY(-110deg);
+}
+
+.locker-body {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #1e293b; /* slate-800 */
+  border: 4px solid #0f172a; /* slate-900 */
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.locker-handle {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 40px;
+  background: #64748b; /* slate-500 */
+  border-radius: 4px;
+}
+
+.locker-indicator {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 10px;
+  border-radius: 5px;
+  background: #ef4444; /* red-500 */
+}
+
+.locker-indicator.is-free {
+  background: #22c55e; /* green-500 */
+}
+
+.package-inside {
+  width: 60px;
+  height: 40px;
+  background: #b45309; /* amber-700 */
+  border: 2px solid #78350f;
+  transform: rotate(-5deg);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.4);
+}
+
 
 
 body {

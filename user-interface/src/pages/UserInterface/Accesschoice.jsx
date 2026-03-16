@@ -78,25 +78,6 @@ export default function AccessChoice() {
                 <ChevronRight className="text-slate-500 group-hover:text-white" size={18} />
               </div>
             </button>
-
-            {/* Registration Button - Blue Aesthetic */}
-            <button
-              onClick={() => navigate("/access/register")}
-              className="group w-full p-5 rounded-3xl bg-white/[0.03] border border-white/5 hover:border-blue-500/50 transition-all duration-500 flex items-center gap-4 text-left hover:bg-white/[0.06] hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-            >
-              <div className="p-3 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform duration-500">
-                <UserPlus size={24} />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-white text-lg tracking-wide">Registration</p>
-                <p className="text-sm text-slate-400 leading-tight">
-                  New resident signup
-                </p>
-              </div>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 group-hover:bg-blue-600 transition-colors">
-                <ChevronRight className="text-slate-500 group-hover:text-white" size={18} />
-              </div>
-            </button>
           </div>
 
           <div className="mt-10 flex flex-col items-center gap-2">

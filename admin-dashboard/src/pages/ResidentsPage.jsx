@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Mail, MoreVertical, Edit, Trash2, X } from 'lucide-react';
+import { Mail, MoreVertical, Edit, Trash2, X, ArrowLeft, UserPlus, ArrowRight, User, Hash, ShieldCheck, KeyRound, Loader2 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { getResidents } from '../mock/mockBackend';
 import Loader from '../components/Loader';
 import { SearchContext } from '../contexts/SearchContext';
+import { useSettings } from '../contexts/SettingsContext';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Inline style helpers using CSS variables
 const surface = {
@@ -27,12 +30,16 @@ const ResidentsPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editId, setEditId] = useState(null);
     const [activeMenu, setActiveMenu] = useState(null);
-    const [formData, setFormData] = useState({ nameOfOwner: '', email: '', apartmentId: '' });
+    const [formData, setFormData] = useState({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
+    const [originalData, setOriginalData] = useState(null);
+    const [regStep, setRegStep] = useState('info'); // 'info' or 'otp'
+    const [submitting, setSubmitting] = useState(false);
     const { searchQuery } = React.useContext(SearchContext);
+    const { t } = useSettings();
 
     const fetchResidents = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/apartment');
+            const res = await fetch(`${API_URL}/apartment`);
             const data = await res.json();
             setResidents(data);
         } catch (error) {
@@ -55,39 +62,148 @@ const ResidentsPage = () => {
     }, [activeMenu]);
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        const url = editId
-            ? `http://localhost:5000/api/apartment/${editId}`
-            : 'http://localhost:5000/api/apartment/register';
-        const method = editId ? 'PUT' : 'POST';
+        if (e) e.preventDefault();
+        
+        // If editing
+        if (editId) {
+            const isEmailChanged = formData.email !== originalData.email;
 
+            // If email changed, we need OTP
+            if (isEmailChanged) {
+                setSubmitting(true);
+                try {
+                    const res = await fetch(`${API_URL}/apartment/register-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ gmail: formData.email })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        setRegStep('otp');
+                    } else {
+                        alert(data.message || 'Failed to send OTP');
+                    }
+                } catch (error) {
+                    alert('Error sending OTP');
+                } finally {
+                    setSubmitting(false);
+                }
+                return;
+            }
+
+            // If email NOT changed, direct update
+            setSubmitting(true);
+            try {
+                const res = await fetch(`${API_URL}/apartment/${editId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nameOfOwner: formData.nameOfOwner,
+                        gmail: formData.email,
+                        apartmentId: formData.apartmentId
+                    })
+                });
+                if (res.ok) {
+                    setIsModalOpen(false);
+                    setEditId(null);
+                    setFormData({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
+                    fetchResidents();
+                    alert('Resident updated successfully!');
+                } else {
+                    const data = await res.json();
+                    alert(data.message || 'Update Failed');
+                }
+            } catch (error) {
+                alert('Error updating resident');
+            } finally {
+                setSubmitting(false);
+            }
+            return;
+        }
+
+        // If adding new, trigger OTP
+        setSubmitting(true);
         try {
+            const res = await fetch(`${API_URL}/apartment/register-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gmail: formData.email })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setRegStep('otp');
+            } else {
+                alert(data.message || 'Failed to send OTP');
+            }
+        } catch (error) {
+            alert('Error sending OTP');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleVerifyOTP = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            const url = editId 
+                ? `${API_URL}/apartment/${editId}` 
+                : `${API_URL}/apartment/register`;
+            const method = editId ? 'PUT' : 'POST';
+
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     nameOfOwner: formData.nameOfOwner,
                     gmail: formData.email,
-                    apartmentId: formData.apartmentId
+                    apartmentId: formData.apartmentId,
+                    otp: formData.otp
                 })
             });
-            if (res.ok) {
+            const data = await res.json();
+            if (res.ok && data.success) {
                 setIsModalOpen(false);
                 setEditId(null);
-                setFormData({ nameOfOwner: '', email: '', apartmentId: '' });
+                setRegStep('info');
+                setFormData({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
                 fetchResidents();
+                alert(editId ? 'Resident updated successfully!' : 'Resident added successfully!');
             } else {
-                alert(editId ? 'Update Failed' : 'Registration Failed');
+                alert(data.message || 'Verification Failed');
             }
         } catch (error) {
-            alert('Error saving resident');
+            alert('Error verifying OTP');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleResendOTP = async () => {
+        setSubmitting(true);
+        try {
+            const res = await fetch(`${API_URL}/apartment/register-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gmail: formData.email })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                alert('OTP resent successfully!');
+            } else {
+                alert(data.message || 'Failed to resend OTP');
+            }
+        } catch (error) {
+            alert('Error resending OTP');
+        } finally {
+            setSubmitting(false);
         }
     };
 
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this resident?')) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/apartment/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_URL}/apartment/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 fetchResidents();
                 setActiveMenu(null);
@@ -100,19 +216,25 @@ const ResidentsPage = () => {
     };
 
     const openEditModal = (resident) => {
-        setFormData({
+        const data = {
             nameOfOwner: resident.nameOfOwner,
             email: resident.gmail,
-            apartmentId: resident.apartmentId
-        });
+            apartmentId: resident.apartmentId,
+            otp: ''
+        };
+        setFormData(data);
+        setOriginalData(data);
         setEditId(resident._id);
+        setRegStep('info');
         setIsModalOpen(true);
         setActiveMenu(null);
     };
 
     const openAddModal = () => {
-        setFormData({ nameOfOwner: '', email: '', apartmentId: '' });
+        setFormData({ nameOfOwner: '', email: '', apartmentId: '', otp: '' });
+        setOriginalData(null);
         setEditId(null);
+        setRegStep('info');
         setIsModalOpen(true);
     };
 
@@ -126,16 +248,17 @@ const ResidentsPage = () => {
         );
     });
 
-    if (loading) return <AdminLayout title="Residents"><Loader /></AdminLayout>;
+    if (loading) return <AdminLayout title={t('Residents')}><Loader /></AdminLayout>;
 
     return (
-        <AdminLayout title="Resident Directory">
+        <AdminLayout title={t('Resident Directory')}>
             <div className="flex justify-end mb-4">
                 <button
                     onClick={openAddModal}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                    className="px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                    style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
                 >
-                    + Add Resident
+                    + {t('Add Resident')}
                 </button>
             </div>
 
@@ -143,52 +266,110 @@ const ResidentsPage = () => {
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
                     <div
-                        className="p-6 rounded-2xl w-96 shadow-2xl transition-colors duration-200"
+                        className="p-6 rounded-2xl w-96 shadow-2xl transition-colors duration-200 relative"
                         style={surface}
                     >
-                        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>
-                            {editId ? 'Edit Resident' : 'Add New Resident'}
+                        {regStep === 'otp' && (
+                            <button 
+                                onClick={() => setRegStep('info')}
+                                className="absolute left-6 top-7 text-slate-500 hover:text-blue-400 transition-colors"
+                            >
+                                <ArrowLeft size={18} />
+                            </button>
+                        )}
+                        <h2 className={`text-xl font-bold mb-4 ${regStep === 'otp' ? 'text-center' : ''}`} style={{ color: 'var(--color-text-primary)' }}>
+                            {editId ? t('Edit') : (regStep === 'info' ? t('Add Resident') : t('Verify Email'))}
                         </h2>
-                        <form onSubmit={handleSubmit} className="space-y-3">
-                            <input
-                                placeholder="Full Name"
-                                style={inputStyle}
-                                value={formData.nameOfOwner}
-                                onChange={e => setFormData({ ...formData, nameOfOwner: e.target.value })}
-                                required
-                            />
-                            <input
-                                placeholder="Email"
-                                type="email"
-                                style={inputStyle}
-                                value={formData.email}
-                                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                required
-                            />
-                            <input
-                                placeholder="Apartment ID (e.g. 101)"
-                                style={inputStyle}
-                                value={formData.apartmentId}
-                                onChange={e => setFormData({ ...formData, apartmentId: e.target.value })}
-                                required
-                            />
-                            <div className="flex justify-end gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsModalOpen(false);
-                                        setEditId(null);
-                                    }}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                                    style={{ color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-surface2)' }}
-                                >
-                                    Cancel
-                                </button>
-                                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                                    {editId ? 'Update Resident' : 'Save Resident'}
-                                </button>
-                            </div>
-                        </form>
+                        
+                        {regStep === 'info' ? (
+                            <form onSubmit={handleSubmit} className="space-y-3">
+                                <input
+                                    placeholder={t('Full Name')}
+                                    style={inputStyle}
+                                    value={formData.nameOfOwner}
+                                    onChange={e => setFormData({ ...formData, nameOfOwner: e.target.value })}
+                                    required
+                                    disabled={submitting}
+                                />
+                                <input
+                                    placeholder={t('Email')}
+                                    type="email"
+                                    style={inputStyle}
+                                    value={formData.email}
+                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    required
+                                    disabled={submitting}
+                                />
+                                <input
+                                    placeholder={t('Apartment ID')}
+                                    style={inputStyle}
+                                    value={formData.apartmentId}
+                                    onChange={e => setFormData({ ...formData, apartmentId: e.target.value })}
+                                    required
+                                    disabled={submitting}
+                                />
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsModalOpen(false);
+                                            setEditId(null);
+                                        }}
+                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                        style={{ color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-surface2)' }}
+                                        disabled={submitting}
+                                    >
+                                        {t('Cancel')}
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                                        style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+                                        disabled={submitting}
+                                    >
+                                        {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                                        {editId 
+                                            ? (formData.email !== originalData.email ? t('Verify Gmail') : t('Update Resident')) 
+                                            : t('Verify & Continue')}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleVerifyOTP} className="space-y-4">
+                                <p className="text-xs text-center mb-2" style={{ color: 'var(--color-text-muted)' }}>
+                                    Enter the 6-digit code sent to<br/>
+                                    <span className="font-semibold" style={{ color: 'var(--color-accent)' }}>{formData.email}</span>
+                                </p>
+                                <input
+                                    placeholder={t('6-Digit OTP')}
+                                    style={{...inputStyle, textAlign: 'center', letterSpacing: '0.25em', fontSize: '1.1rem'}}
+                                    value={formData.otp}
+                                    onChange={e => setFormData({ ...formData, otp: e.target.value })}
+                                    maxLength={6}
+                                    required
+                                    disabled={submitting}
+                                />
+                                <div className="space-y-2">
+                                    <button 
+                                        type="submit" 
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                        disabled={submitting}
+                                    >
+                                        {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                                        {editId ? t('Update Registration') : t('Complete Registration')}
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={handleResendOTP}
+                                        className="w-full py-2 text-xs font-medium hover:underline disabled:opacity-50"
+                                        style={{ color: 'var(--color-accent)' }}
+                                        disabled={submitting}
+                                    >
+                                        {t("Didn't get a code? Resend")}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
                     </div>
                 </div>
             )}
@@ -198,9 +379,9 @@ const ResidentsPage = () => {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr style={{ backgroundColor: 'var(--color-bg-surface2)', borderBottom: '1px solid var(--color-border)' }}>
-                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>User</th>
-                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>Apartment</th>
-                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>Actions</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>{t('User')}</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>{t('Apartment')}</th>
+                            <th className="px-6 py-4 text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>{t('Actions')}</th>
                         </tr>
                     </thead>
                     <tbody className="text-sm">
@@ -215,7 +396,7 @@ const ResidentsPage = () => {
                                     <div className="flex items-center gap-3">
                                         <div
                                             className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm"
-                                            style={{ backgroundColor: 'rgba(59,130,246,0.15)', color: 'var(--color-accent)' }}
+                                            style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
                                         >
                                             {user.nameOfOwner?.charAt(0)?.toUpperCase() || 'U'}
                                         </div>
@@ -254,14 +435,14 @@ const ResidentsPage = () => {
                                                 className="w-full text-left px-4 py-2 text-xs flex items-center gap-2 hover:bg-white/5 transition-colors"
                                                 style={{ color: 'var(--color-text-primary)' }}
                                             >
-                                                <Edit className="h-3 w-3" /> Edit
+                                                <Edit className="h-3 w-3" /> {t('Edit')}
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(user._id)}
                                                 className="w-full text-left px-4 py-2 text-xs flex items-center gap-2 hover:bg-red-500/10 transition-colors"
                                                 style={{ color: '#ef4444' }}
                                             >
-                                                <Trash2 className="h-3 w-3" /> Delete
+                                                <Trash2 className="h-3 w-3" /> {t('Delete')}
                                             </button>
                                         </div>
                                     )}
@@ -272,7 +453,7 @@ const ResidentsPage = () => {
                 </table>
                 {filteredResidents.length === 0 && (
                     <div className="p-12 text-center" style={{ color: 'var(--color-text-subtle)' }}>
-                        No residents found.
+                        {t('No residents found.')}
                     </div>
                 )}
             </div>

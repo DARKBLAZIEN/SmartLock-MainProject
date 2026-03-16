@@ -1,43 +1,83 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Card from '../Card';
 import Button from '../Button';
-import { Sun, Moon, Upload, Check } from 'lucide-react';
-
-// Directly apply theme to document — no React context dependency
-function applyTheme(theme) {
-    if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('theme', theme);
-}
+import { Sun, Moon, Upload, Check, Download, Box } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const AppearanceSettings = ({ onSave }) => {
-    const [currentTheme, setCurrentTheme] = useState(() => {
-        return localStorage.getItem('theme') || 'light';
-    });
+    const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme();
+    const { t, settings, updateSettings } = useSettings();
     const [justApplied, setJustApplied] = useState(false);
-    const [primaryColor, setPrimaryColor] = useState('#2563eb');
-    const [logoUrl] = useState('/logo.png');
-
-    // Sync with document class on mount
-    useEffect(() => {
-        const docTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-        setCurrentTheme(docTheme);
-    }, []);
+    const [tempColor, setTempColor] = useState(primaryColor);
+    const [logoUrl, setLogoUrl] = useState(settings.customLogo || null);
+    const fileInputRef = React.useRef(null);
 
     const handleThemeChange = (newTheme) => {
-        if (newTheme === currentTheme) return;
-        applyTheme(newTheme);          // apply IMMEDIATELY
-        setCurrentTheme(newTheme);
-        // Show brief "Applied" flash
+        if (newTheme === theme) return;
+        setTheme(newTheme);
         setJustApplied(true);
         setTimeout(() => setJustApplied(false), 1500);
     };
 
+    const handleSave = () => {
+        setPrimaryColor(tempColor);
+        updateSettings({ customLogo: logoUrl });
+        if (onSave) onSave({ theme, primaryColor: tempColor, logoUrl });
+        setJustApplied(true);
+        setTimeout(() => setJustApplied(false), 1500);
+    };
+
+    const handleLogoClick = () => {
+        if (fileInputRef.current) fileInputRef.current.click();
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size exceeds 2MB limit.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoUrl(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const downloadLogo = () => {
+        let svgContent = '';
+        const effectiveLogo = logoUrl;
+        
+        if (!effectiveLogo) {
+            // Default Vector Logo (Box/Locker inspired SVG)
+            svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>`;
+        } else {
+            // For custom logos, wrap the image in an SVG container
+            svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+                <image href="${effectiveLogo}" width="512" height="512" preserveAspectRatio="xMidYMid meet" />
+            </svg>`;
+        }
+
+        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${settings.systemName.replace(/\s+/g, '-').toLowerCase()}-logo.svg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     return (
-        <Card title="Appearance Settings">
+        <Card title={t('Appearance Settings')}>
             <div className="space-y-6">
 
                 {/* ── Theme Selection ── */}
@@ -58,8 +98,8 @@ const AppearanceSettings = ({ onSave }) => {
                             type="button"
                             onClick={() => handleThemeChange('light')}
                             className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200"
-                            style={currentTheme === 'light'
-                                ? { backgroundColor: '#eff6ff', borderColor: '#2563eb', color: '#2563eb' }
+                            style={theme === 'light'
+                                ? { backgroundColor: 'var(--color-accent-light)', borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }
                                 : { backgroundColor: 'var(--color-bg-surface2)', borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }
                             }
                         >
@@ -79,8 +119,8 @@ const AppearanceSettings = ({ onSave }) => {
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <Sun className="h-4 w-4" />
-                                <span className="font-semibold text-sm">Light</span>
-                                {currentTheme === 'light' && <Check className="h-3.5 w-3.5" />}
+                                <span className="font-semibold text-sm">{t('Light')}</span>
+                                {theme === 'light' && <Check className="h-3.5 w-3.5" />}
                             </div>
                         </button>
 
@@ -89,8 +129,8 @@ const AppearanceSettings = ({ onSave }) => {
                             type="button"
                             onClick={() => handleThemeChange('dark')}
                             className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200"
-                            style={currentTheme === 'dark'
-                                ? { backgroundColor: 'rgba(59,130,246,0.15)', borderColor: '#60a5fa', color: '#60a5fa' }
+                            style={theme === 'dark'
+                                ? { backgroundColor: 'var(--color-accent-light)', borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }
                                 : { backgroundColor: 'var(--color-bg-surface2)', borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }
                             }
                         >
@@ -110,54 +150,83 @@ const AppearanceSettings = ({ onSave }) => {
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <Moon className="h-4 w-4" />
-                                <span className="font-semibold text-sm">Dark</span>
-                                {currentTheme === 'dark' && <Check className="h-3.5 w-3.5" />}
+                                <span className="font-semibold text-sm">{t('Dark')}</span>
+                                {theme === 'dark' && <Check className="h-3.5 w-3.5" />}
                             </div>
                         </button>
                     </div>
                     <p className="mt-2 text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-                        Theme is applied instantly — no save required.
+                        {t('Theme is applied instantly — no save required.')}
                     </p>
                 </div>
 
                 {/* ── Primary Color ── */}
                 <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>Primary Color</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>{t('Primary Color')}</label>
                     <div className="flex items-center gap-4">
                         <input
                             type="color"
-                            value={primaryColor}
-                            onChange={e => setPrimaryColor(e.target.value)}
+                            value={tempColor}
+                            onChange={e => setTempColor(e.target.value)}
                             className="h-10 w-20 p-1 rounded-lg cursor-pointer"
                             style={{ border: '1px solid var(--color-border)' }}
                         />
-                        <span className="text-sm font-mono uppercase" style={{ color: 'var(--color-text-muted)' }}>{primaryColor}</span>
+                        <span className="text-sm font-mono uppercase" style={{ color: 'var(--color-text-muted)' }}>{tempColor}</span>
                     </div>
                 </div>
 
                 {/* ── Organization Logo ── */}
                 <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>Organization Logo</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>{t('Organization Logo')}</label>
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange} 
+                        accept="image/*" 
+                        className="hidden" 
+                    />
                     <div
                         className="flex items-center gap-6 p-5 rounded-2xl border-2 border-dashed transition-colors duration-200"
                         style={{ borderColor: 'var(--color-border-md)', backgroundColor: 'var(--color-bg-surface2)' }}
                     >
                         <div
                             className="h-16 w-16 rounded-xl shadow-sm flex items-center justify-center overflow-hidden"
-                            style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)' }}
+                            style={{
+                                backgroundColor: logoUrl ? 'var(--color-bg-surface)' : 'var(--color-accent)',
+                                border: '1px solid var(--color-border)'
+                            }}
                         >
-                            <img
-                                src={logoUrl}
-                                alt="Logo"
-                                className="max-h-12 max-w-[48px] object-contain"
-                                onError={e => e.target.src = 'https://via.placeholder.com/64'}
-                            />
+                            {logoUrl ? (
+                                <img
+                                    src={logoUrl}
+                                    alt="Logo"
+                                    className="h-full w-full object-contain"
+                                    onError={e => { e.target.style.display = 'none'; }}
+                                />
+                            ) : (
+                                <Box className="h-8 w-8" style={{ color: 'var(--color-accent-contrast)' }} />
+                            )}
                         </div>
                         <div className="flex-1">
-                            <Button type="button" variant="outline" className="w-auto flex items-center gap-2">
-                                <Upload className="h-4 w-4" /> Change Logo
-                            </Button>
-                            <p className="mt-2 text-xs" style={{ color: 'var(--color-text-subtle)' }}>PNG, JPG or SVG. Max 2MB.</p>
+                            <div className="flex items-center gap-3">
+                                <Button type="button" onClick={handleLogoClick} variant="outline" className="w-auto flex items-center gap-2">
+                                    <Upload className="h-4 w-4" /> {t('Change Logo')}
+                                </Button>
+                                <Button type="button" onClick={downloadLogo} variant="outline" className="w-auto flex items-center gap-2">
+                                    <Download className="h-4 w-4" /> {t('Download Logo')}
+                                </Button>
+                                {logoUrl && (
+                                    <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        className="w-auto text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        onClick={() => { setLogoUrl(null); updateSettings({ customLogo: null }); }}
+                                    >
+                                        {t('Reset')}
+                                    </Button>
+                                )}
+                            </div>
+                            <p className="mt-2 text-xs" style={{ color: 'var(--color-text-subtle)' }}>{t('PNG, JPG or SVG. Max 2MB.')}</p>
                         </div>
                     </div>
                 </div>
@@ -166,10 +235,10 @@ const AppearanceSettings = ({ onSave }) => {
                 <div className="pt-4 flex justify-end" style={{ borderTop: '1px solid var(--color-border)' }}>
                     <Button
                         type="button"
-                        onClick={() => onSave({ theme: currentTheme, primaryColor, logoUrl })}
+                        onClick={handleSave}
                         className="w-auto px-8"
                     >
-                        Save Changes
+                        {t('Save Changes')}
                     </Button>
                 </div>
             </div>

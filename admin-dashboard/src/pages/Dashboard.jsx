@@ -3,42 +3,156 @@ import { Package, Smartphone, AlertOctagon, TrendingUp } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import StatCard from '../components/StatCard';
 import ActivityFeed from '../components/ActivityFeed';
-import { getDashboardStats, getRecentActivity } from '../mock/mockBackend';
+import { lockerApi } from '../api/locker.api';
 import Loader from '../components/Loader';
 import { SearchContext } from '../contexts/SearchContext';
+import { useSettings } from '../contexts/SettingsContext';
+import { useTimezone } from '../contexts/TimezoneContext';
 
 const Dashboard = () => {
+    const { t, settings } = useSettings();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({});
     const [activities, setActivities] = useState([]);
+    const [rawWeeklyActivities, setRawWeeklyActivities] = useState([0, 0, 0, 0, 0, 0, 0]);
+    const [weeklyActivities, setWeeklyActivities] = useState([0, 0, 0, 0, 0, 0, 0]);
+    const [timeframe, setTimeframe] = useState('This Week');
     const { searchQuery } = React.useContext(SearchContext);
+    const { formatInTimezone } = useTimezone();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [statsData, activityData] = await Promise.all([
-                    getDashboardStats(),
-                    getRecentActivity()
-                ]);
-                setStats(statsData);
-                setActivities(activityData);
+                // Fetch real activities
+                const activityData = await lockerApi.getEvents();
+                
+                // For stats, we can calculate some from the locker status
+                const lockers = await lockerApi.getStatus();
+                const occupiedCount = lockers.filter(l => !l.isFree).length;
+                const totalCount = lockers.length;
+                
+                // --- Period Comparison Logic ---
+                const now = new Date();
+                const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+                const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
+
+                const currentMonthEvents = activityData.filter(a => new Date(a.timestamp) > thirtyDaysAgo);
+                const lastMonthEvents = activityData.filter(a => {
+                    const d = new Date(a.timestamp);
+                    return d > sixtyDaysAgo && d <= thirtyDaysAgo;
+                });
+
+                const calcTrend = (curr, prev) => {
+                    if (prev === 0) return curr > 0 ? 100 : 0;
+                    return Math.round(((curr - prev) / prev) * 100);
+                };
+
+                const revenuePerPickup = settings.revenuePerPickup || 5.50;
+
+                // Current Stats
+                const currDeliveries = currentMonthEvents.filter(a => a.type === 'DELIVERY').length;
+                const currPickups = currentMonthEvents.filter(a => a.type === 'PICKUP').length;
+                const currRevenue = currPickups * revenuePerPickup;
+                const currEfficiency = totalCount > 0 ? Math.round(((totalCount - occupiedCount) / totalCount) * 100) : 100;
+                const currIssues = currentMonthEvents.filter(a => a.type === 'SYSTEM_ALERT').length;
+ 
+                const lastDeliveries = lastMonthEvents.filter(a => a.type === 'DELIVERY').length;
+                const lastPickups = lastMonthEvents.filter(a => a.type === 'PICKUP').length;
+                const lastRevenue = lastPickups * revenuePerPickup;
+                const lastIssues = lastMonthEvents.filter(a => a.type === 'SYSTEM_ALERT').length;
+ 
+                // Estimate Last Month Efficiency (State exactly 30 days ago)
+                // We calculate net change in occupancy over the last 30 days
+                const netChangeLast30Days = currDeliveries - currPickups;
+                const occupancy30DaysAgo = Math.max(0, occupiedCount - netChangeLast30Days);
+                const efficiency30DaysAgo = totalCount > 0 ? Math.round(((totalCount - occupancy30DaysAgo) / totalCount) * 100) : 100;
+ 
+                setStats({
+                    todaysDeliveries: currDeliveries,
+                    revenue: activityData.filter(a => a.type === 'PICKUP').length * revenuePerPickup, // Total Revenue
+                    weeklyEfficiency: currEfficiency,
+                    activeIssues: currIssues,
+                    trends: {
+                        deliveries: calcTrend(currDeliveries, lastDeliveries),
+                        revenue: calcTrend(currRevenue, lastRevenue),
+                        efficiency: calcTrend(currEfficiency, efficiency30DaysAgo), 
+                        issues: calcTrend(currIssues, lastIssues)
+                    }
+                });
+
+                setActivities(activityData.map(item => ({
+                    id: item._id,
+                    type: item.type,
+                    description: item.description,
+                    timestamp: item.timestamp
+                })));
+
+                // Calculate Weekly Activities for Graph (Calendar Weeks)
+                const counts = Array(7).fill(0);
+                
+                // Get Sunday of current week
+                const currentSun = new Date(now);
+                currentSun.setDate(now.getDate() - now.getDay());
+                currentSun.setHours(0, 0, 0, 0);
+
+                // Get Sunday of last week
+                const lastSun = new Date(currentSun);
+                lastSun.setDate(currentSun.getDate() - 7);
+                
+                // Get Saturday of last week
+                const lastSat = new Date(lastSun);
+                lastSat.setDate(lastSun.getDate() + 6);
+                lastSat.setHours(23, 59, 59, 999);
+
+                activityData.forEach(event => {
+                    const eventDate = new Date(event.timestamp);
+                    
+                    if (timeframe === 'This Week') {
+                        // From Sunday till now
+                        if (eventDate >= currentSun && eventDate <= now) {
+                            counts[eventDate.getDay()] += 1;
+                        }
+                    } else {
+                        // Last Week (Sun to Sat)
+                        if (eventDate >= lastSun && eventDate <= lastSat) {
+                            counts[eventDate.getDay()] += 1;
+                        }
+                    }
+                });
+                
+                setRawWeeklyActivities(counts);
+                const maxActivity = Math.max(...counts, 5); 
+                setWeeklyActivities(counts.map(count => (count / maxActivity) * 100));
+
+                // Debug logs
+                console.log('--- Dashboard Data Debug ---');
+                console.log('Total Events fetched:', activityData.length);
+                console.log('Timeframe:', timeframe);
+                console.log('Range Sun:', (timeframe === 'This Week' ? currentSun : lastSun).toISOString());
+                console.log('Range End:', (timeframe === 'This Week' ? now : lastSat).toISOString());
+                console.log('Counts:', counts);
+                console.log('---------------------------');
+
             } catch (error) {
                 console.error('Failed to load dashboard', error);
             } finally {
-                setLoading(false);
+                if (loading) setLoading(false);
             }
         };
-        fetchData();
-    }, []);
 
-    if (loading) return <AdminLayout title="Overview"><Loader text="Loading Dashboard..." /></AdminLayout>;
+        fetchData();
+        const interval = setInterval(fetchData, 10000); // Polling every 10 seconds for real-time feel
+        return () => clearInterval(interval);
+    }, [settings.revenuePerPickup, timeframe]);
+
+    if (loading) return <AdminLayout title={t('Overview')}><Loader text={t('Loading Dashboard...')} /></AdminLayout>;
 
     const filteredActivities = activities.filter(activity => {
         if (!searchQuery) return true;
         const query = searchQuery.toLowerCase();
 
-        const timeStr = new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase();
-        const dateStr = new Date(activity.timestamp).toLocaleDateString().toLowerCase();
+        const timeStr = formatInTimezone(activity.timestamp, false).toLowerCase();
+        const dateStr = formatInTimezone(activity.timestamp).split(' ')[0].toLowerCase();
 
         return (
             activity.type?.toLowerCase().includes(query) ||
@@ -50,34 +164,34 @@ const Dashboard = () => {
     });
 
     return (
-        <AdminLayout title="Overview">
+        <AdminLayout title={t('Overview')}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard
                     icon={Package}
-                    label="Total Deliveries"
+                    label={t('Total Deliveries')}
                     value={stats.todaysDeliveries}
-                    trend={12}
+                    trend={stats.trends?.deliveries || 0}
                     color="blue"
                 />
                 <StatCard
                     icon={Smartphone}
-                    label="Revenue"
-                    value={`$${stats.revenue}`}
-                    trend={8}
+                    label={t('Revenue')}
+                    value={`$${stats.revenue?.toFixed(2)}`}
+                    trend={stats.trends?.revenue || 0}
                     color="green"
                 />
                 <StatCard
                     icon={TrendingUp}
-                    label="Efficiency"
+                    label={t('Efficiency')}
                     value={`${stats.weeklyEfficiency}%`}
-                    trend={-2}
+                    trend={stats.trends?.efficiency || 0}
                     color="purple"
                 />
                 <StatCard
                     icon={AlertOctagon}
-                    label="Issues"
+                    label={t('Issues')}
                     value={stats.activeIssues}
-                    trend={0}
+                    trend={stats.trends?.issues || 0}
                     color="red"
                 />
             </div>
@@ -86,25 +200,38 @@ const Dashboard = () => {
                 {/* Main Chart Area (Mock) */}
                 <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-200">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Occupancy Trends</h3>
-                        <select className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 outline-none">
-                            <option>This Week</option>
-                            <option>Last Week</option>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('Occupancy Trends')}</h3>
+                        <select 
+                            value={timeframe}
+                            onChange={(e) => setTimeframe(e.target.value)}
+                            className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 outline-none cursor-pointer"
+                        >
+                            <option value="This Week">{t('This Week')}</option>
+                            <option value="Last Week">{t('Last Week')}</option>
                         </select>
                     </div>
 
-                    {/* Mock Chart Visualization */}
+                    {/* Real-time Activity Visualization */}
                     <div className="h-64 flex items-end justify-between px-2 gap-2">
-                        {[40, 65, 30, 85, 55, 90, 45].map((height, i) => (
-                            <div key={i} className="w-full flex flex-col items-center gap-2 group cursor-pointer">
-                                <div className="relative w-full bg-blue-50 dark:bg-blue-950/30 rounded-t-lg overflow-hidden h-full">
+                        {weeklyActivities.map((height, i) => (
+                            <div key={i} className="w-full h-full flex flex-col items-center gap-2 group cursor-pointer">
+                                <div
+                                    className="relative w-full flex-1 rounded-t-lg overflow-hidden"
+                                    style={{ backgroundColor: 'var(--color-bg-surface2)' }}
+                                >
                                     <div
-                                        style={{ height: `${height}%` }}
-                                        className="absolute bottom-0 w-full bg-blue-500 rounded-t-lg transition-all duration-500 group-hover:bg-blue-600"
+                                        style={{ height: `${height}%`, backgroundColor: 'var(--color-accent)' }}
+                                        className="absolute bottom-0 w-full rounded-t-lg transition-all duration-700"
                                     ></div>
+                                    {/* Tooltip */}
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span className="bg-gray-900 text-white text-[10px] py-1 px-2 rounded -mt-12 backdrop-blur-md">
+                                            {rawWeeklyActivities[i] > 0 ? `${rawWeeklyActivities[i]} ${t('Events')}` : t('No Activity')}
+                                        </span>
+                                    </div>
                                 </div>
                                 <span className="text-xs text-gray-400 font-medium">
-                                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}
+                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}
                                 </span>
                             </div>
                         ))}

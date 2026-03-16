@@ -6,6 +6,7 @@ const DeliveryLog = require("../models/DeliveryLog");
 const RegistrationOTP = require("../models/RegistrationOTP");
 const Event = require("../models/Event"); // Added from GitHub
 const PickupLog = require("../models/PickupLog");
+const Event = require("../models/Event");
 
 const router = express.Router();
 

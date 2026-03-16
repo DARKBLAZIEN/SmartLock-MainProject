@@ -1,29 +1,29 @@
-import { getSystemStatus, forceOpenLocker, addLocker } from '../mock/mockBackend';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const lockerApi = {
     getStatus: async () => {
         try {
-            const response = await getSystemStatus();
-            return response;
+            const response = await fetch(`${API_URL}/apartment/lockers`);
+            const data = await response.json();
+            return data;
         } catch (error) {
+            console.error('Locker API Error:', error);
             throw error;
         }
     },
 
-    forceOpen: async (lockerId, reason) => {
+    close: async (lockerId) => {
         try {
-            await forceOpenLocker(lockerId, reason);
-            return { success: true };
+            const response = await fetch(`${API_URL}/apartment/locker/close`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lockerId })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to close locker');
+            return data;
         } catch (error) {
-            throw error;
-        }
-    },
-
-    createLocker: async (lockerId) => {
-        try {
-            await addLocker(lockerId);
-            return { success: true };
-        } catch (error) {
+            console.error('Locker Close API Error:', error);
             throw error;
         }
     }

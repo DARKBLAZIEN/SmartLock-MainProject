@@ -1,18 +1,23 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Hash, LockKeyhole, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { useFlow, FLOW_MODES, FLOW_STATUS } from "../../context/FlowContext";
 
 export default function PickupAccess() {
   const [apartmentId, setApartmentId] = useState("");
   const [passcode, setPasscode] = useState("");
   const [showPasscode, setShowPasscode] = useState(false);
   const navigate = useNavigate();
+  const { startFlow, updateFlow } = useFlow();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    startFlow(FLOW_MODES.PICKUP);
+    updateFlow({ status: FLOW_STATUS.PROCESSING, apartmentId });
+    
     try {
-      const response = await fetch("http://localhost:5000/api/apartment/pickup", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/apartment/pickup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ apartmentId, passcode }),
@@ -21,9 +26,14 @@ export default function PickupAccess() {
       const data = await response.json();
 
       if (data.success) {
-        alert(data.message);
-        navigate("/"); // Go back to start
+        updateFlow({ 
+            status: FLOW_STATUS.SUCCESS, 
+            lockerId: data.lockerId,
+            details: data
+        });
+        navigate("/pickup/status");
       } else {
+        updateFlow({ status: FLOW_STATUS.ERROR, error: data.message });
         alert(data.message || "Access Denied");
       }
     } catch (error) {

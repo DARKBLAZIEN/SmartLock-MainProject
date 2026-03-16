@@ -32,12 +32,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
             <div className="relative bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md transform transition-all scale-100 opacity-100">
                 <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
-                    <button
-                        onClick={onClose}
-                        className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
+                    
                 </div>
 
                 <div className="p-6">

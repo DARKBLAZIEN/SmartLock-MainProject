@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFlow, FLOW_STATUS } from '../context/FlowContext';
+import { lockerApi } from '../api/locker.api';
 import Card from '../components/Card';
+import LockerGraphic from '../components/LockerGraphic';
 import Loader from '../components/Loader';
 import Button from '../components/Button';
 
@@ -10,6 +12,9 @@ const PickupStatus = () => {
     const { flowState } = useFlow();
     const [step, setStep] = useState('OPENING'); // OPENING, OPEN, COMPLETED
     const [countdown, setCountdown] = useState(5);
+
+    const [statusMessage, setStatusMessage] = useState('');
+    const [isClosing, setIsClosing] = useState(false);
 
     useEffect(() => {
         // Redirect if no active flow
@@ -21,17 +26,28 @@ const PickupStatus = () => {
         // Simulate locker opening
         const openTimer = setTimeout(() => {
             setStep('OPEN');
-        }, 2000);
+        }, 1500);
 
-        const completeTimer = setTimeout(() => {
-            setStep('COMPLETED');
-        }, 6000); // User collecting package time
-
-        return () => {
-            clearTimeout(openTimer);
-            clearTimeout(completeTimer);
-        };
+        return () => clearTimeout(openTimer);
     }, [flowState, navigate]);
+
+    const handleCloseDoor = async () => {
+        console.log("Attempting to close locker:", flowState.lockerId);
+        setIsClosing(true);
+        setStatusMessage('Syncing with backend...');
+        try {
+            const result = await lockerApi.close(flowState.lockerId);
+            console.log("Locker closed successfully:", result);
+            setStep('CLOSED');
+            setTimeout(() => {
+                setStep('COMPLETED');
+            }, 1500);
+        } catch (error) {
+            console.error("Failed to close locker:", error);
+            setStatusMessage('Error: ' + error.message);
+            setIsClosing(false);
+        }
+    };
 
     useEffect(() => {
         if (step === 'COMPLETED') {
@@ -50,46 +66,73 @@ const PickupStatus = () => {
     }, [step, navigate]);
 
     return (
-        <div className="max-w-md mx-auto w-full">
-            <Card title="Pickup Status">
-                <div className="text-center py-6">
-                    {step === 'OPENING' && (
-                        <>
-                            <Loader text="Unlocking Locker..." />
-                        </>
-                    )}
-
-                    {step === 'OPEN' && (
-                        <div className="space-y-4">
-                            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100">
-                                <svg className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                                </svg>
+        <div className="min-h-screen flex items-center justify-center bg-slate-950 relative overflow-hidden">
+            <div 
+                className="absolute inset-0 z-0 opacity-20"
+                style={{ backgroundImage: `radial-gradient(circle at 2px 2px, #10b981 1px, transparent 0)`, backgroundSize: '40px 40px' }}
+            />
+            
+            <div className="w-full max-w-md mx-4 z-10">
+                <div className="bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 p-10 relative shadow-2xl">
+                    <div className="text-center">
+                        {step === 'OPENING' && (
+                            <div className="animate-content">
+                                <LockerGraphic isOpen={false} isFree={false} hasPackage={true} lockerId={flowState.lockerId} />
+                                <Loader text="Authenticating Lock..." />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900">{flowState.lockerId} is Open</h3>
-                            <p className="text-gray-600">Please collect your package and close the door.</p>
-                        </div>
-                    )}
+                        )}
 
-                    {step === 'COMPLETED' && (
-                        <div className="space-y-4">
-                            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100">
-                                <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                </svg>
+                        {step === 'OPEN' && (
+                            <div className="space-y-6">
+                                <LockerGraphic isOpen={true} isFree={true} hasPackage={true} lockerId={flowState.lockerId} />
+                                <div>
+                                    <h3 className="text-2xl font-bold text-white tracking-tight">Access Granted</h3>
+                                    <p className="text-slate-400 mt-2">Locker unit {flowState.lockerId} is now open.</p>
+                                </div>
+
+                                <div className="pt-4">
+                                    <Button 
+                                        onClick={handleCloseDoor} 
+                                        disabled={isClosing}
+                                        variant="warning"
+                                        className="w-full py-4 rounded-2xl shadow-lg shadow-orange-900/20"
+                                    >
+                                        {isClosing ? 'Syncing...' : 'Locker Closed'}
+                                    </Button>
+                                    {statusMessage && <p className="mt-4 text-sm text-emerald-400 font-medium">{statusMessage}</p>}
+                                </div>
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900">Pickup Complete!</h3>
-                            <p className="text-gray-600">Thank you for using SmartLock.</p>
+                        )}
 
-                            <p className="text-gray-500 text-sm">Redirecting to home in {countdown}s...</p>
+                        {step === 'CLOSED' && (
+                            <div className="space-y-6">
+                                <LockerGraphic isOpen={false} isFree={true} hasPackage={false} lockerId={flowState.lockerId} />
+                                <div>
+                                    <h3 className="text-2xl font-bold text-white tracking-tight">Locker Secured</h3>
+                                    <p className="text-slate-400 mt-2">Completing your session...</p>
+                                </div>
+                            </div>
+                        )}
 
-                            <Button onClick={() => navigate('/')}>
-                                Return Home Now
-                            </Button>
-                        </div>
-                    )}
+                        {step === 'COMPLETED' && (
+                            <div className="space-y-6">
+                                <LockerGraphic isOpen={false} isFree={true} hasPackage={false} lockerId={flowState.lockerId} />
+                                <div>
+                                    <h3 className="text-2xl font-bold text-white tracking-tight">Operation Complete</h3>
+                                    <p className="text-slate-400 mt-2">Package collection verified. Thank you.</p>
+                                </div>
+                                <p className="text-slate-500 text-sm italic">System resetting in {countdown}s...</p>
+                                <button 
+                                    onClick={() => navigate('/')}
+                                    className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                                >
+                                    Return to Home
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </Card>
+            </div>
         </div>
     );
 };
