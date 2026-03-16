@@ -56,9 +56,9 @@ export const lockerApi = {
         }
     },
 
-    getEvents: async () => {
+    getEvents: async (limit = 100) => {
         try {
-            const response = await fetch(`${API_URL}/apartment/events`);
+            const response = await fetch(`${API_URL}/apartment/events?limit=${limit}`);
             if (!response.ok) throw new Error('Failed to fetch events');
             return await response.json();
         } catch (error) {

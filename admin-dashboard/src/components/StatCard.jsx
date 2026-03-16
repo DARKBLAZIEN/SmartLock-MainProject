@@ -1,6 +1,6 @@
 import React from 'react';
 
-const StatCard = ({ icon: Icon, label, value, trend, color = 'blue' }) => {
+const StatCard = ({ icon: Icon, label, value, trend, color = 'blue', inverseTrend = false }) => {
     const iconStyles = {
         blue: { bg: 'var(--color-accent-light)', text: 'var(--color-accent)' },
         green: { bg: 'rgba(34,197,94,0.12)', text: '#22c55e' },
@@ -10,6 +10,16 @@ const StatCard = ({ icon: Icon, label, value, trend, color = 'blue' }) => {
     };
 
     const icon = iconStyles[color] || iconStyles.blue;
+
+    // Determine trend color
+    let trendClass = 'text-green-500';
+    if (trend > 0) {
+        trendClass = inverseTrend ? 'text-red-500' : 'text-green-500';
+    } else if (trend < 0) {
+        trendClass = inverseTrend ? 'text-green-500' : 'text-red-500';
+    } else {
+        trendClass = 'text-gray-500'; // No change
+    }
 
     return (
         <div
@@ -29,9 +39,9 @@ const StatCard = ({ icon: Icon, label, value, trend, color = 'blue' }) => {
                     <Icon className="h-6 w-6" style={{ color: icon.text }} />
                 </div>
             </div>
-            {trend && (
+            {trend !== undefined && (
                 <div className="mt-4 flex items-center text-sm">
-                    <span className={`font-medium ${trend >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <span className={`font-medium ${trendClass}`}>
                         {trend > 0 ? '+' : ''}{trend}%
                     </span>
                     <span className="ml-2" style={{ color: 'var(--color-text-subtle)' }}>than the last month</span>

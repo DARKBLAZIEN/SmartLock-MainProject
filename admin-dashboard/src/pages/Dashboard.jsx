@@ -23,59 +23,77 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch real activities
-                const activityData = await lockerApi.getEvents();
+                // Fetch real activities - increase limit to 1000 to cover previous months
+                const activityData = await lockerApi.getEvents(1000);
                 
                 // For stats, we can calculate some from the locker status
                 const lockers = await lockerApi.getStatus();
                 const occupiedCount = lockers.filter(l => !l.isFree).length;
                 const totalCount = lockers.length;
                 
-                // --- Period Comparison Logic ---
+                // --- Period Comparison Logic (Calendar Months) ---
                 const now = new Date();
-                const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-                const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
+                
+                // Start of Current Month
+                const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                
+                // Start of Last Month
+                const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                
+                // End of Last Month (just before start of current)
+                const endOfLastMonth = new Date(startOfCurrentMonth.getTime() - 1);
 
-                const currentMonthEvents = activityData.filter(a => new Date(a.timestamp) > thirtyDaysAgo);
+                const currentMonthEvents = activityData.filter(a => {
+                    const d = new Date(a.timestamp);
+                    return d >= startOfCurrentMonth;
+                });
+
                 const lastMonthEvents = activityData.filter(a => {
                     const d = new Date(a.timestamp);
-                    return d > sixtyDaysAgo && d <= thirtyDaysAgo;
+                    return d >= startOfLastMonth && d <= endOfLastMonth;
                 });
 
                 const calcTrend = (curr, prev) => {
-                    if (prev === 0) return curr > 0 ? 100 : 0;
+                    if (prev === 0) return curr > 0 ? 100 : (curr === 0 ? 0 : -100);
                     return Math.round(((curr - prev) / prev) * 100);
                 };
 
                 const revenuePerPickup = settings.revenuePerPickup || 5.50;
 
-                // Current Stats
+                // Current Stats (This Calendar Month)
                 const currDeliveries = currentMonthEvents.filter(a => a.type === 'DELIVERY').length;
                 const currPickups = currentMonthEvents.filter(a => a.type === 'PICKUP').length;
                 const currRevenue = currPickups * revenuePerPickup;
                 const currEfficiency = totalCount > 0 ? Math.round(((totalCount - occupiedCount) / totalCount) * 100) : 100;
                 const currIssues = currentMonthEvents.filter(a => a.type === 'SYSTEM_ALERT').length;
- 
+
+                // Last Period Stats (Previous Calendar Month)
                 const lastDeliveries = lastMonthEvents.filter(a => a.type === 'DELIVERY').length;
                 const lastPickups = lastMonthEvents.filter(a => a.type === 'PICKUP').length;
                 const lastRevenue = lastPickups * revenuePerPickup;
                 const lastIssues = lastMonthEvents.filter(a => a.type === 'SYSTEM_ALERT').length;
- 
-                // Estimate Last Month Efficiency (State exactly 30 days ago)
-                // We calculate net change in occupancy over the last 30 days
-                const netChangeLast30Days = currDeliveries - currPickups;
-                const occupancy30DaysAgo = Math.max(0, occupiedCount - netChangeLast30Days);
-                const efficiency30DaysAgo = totalCount > 0 ? Math.round(((totalCount - occupancy30DaysAgo) / totalCount) * 100) : 100;
- 
+
+                // Estimate Last Month Efficiency
+                const netChangeThisMonth = currDeliveries - currPickups;
+                const occupiedCountStartOfMonth = Math.max(0, occupiedCount - netChangeThisMonth);
+                const efficiencyStartOfMonth = totalCount > 0 ? Math.round(((totalCount - occupiedCountStartOfMonth) / totalCount) * 100) : 100;
+
+                console.log('--- Dashboard Comparison Debug ---');
+                console.log('Current Month (from):', startOfCurrentMonth.toISOString());
+                console.log('Last Month (range):', startOfLastMonth.toISOString(), 'to', endOfLastMonth.toISOString());
+                console.log('Events in CurMonth:', currentMonthEvents.length, '| Deliveries:', currDeliveries);
+                console.log('Events in LastMonth:', lastMonthEvents.length, '| Deliveries:', lastDeliveries);
+                console.log('---------------------------------');
+
                 setStats({
                     todaysDeliveries: currDeliveries,
-                    revenue: activityData.filter(a => a.type === 'PICKUP').length * revenuePerPickup, // Total Revenue
+                    revenue: currRevenue,
                     weeklyEfficiency: currEfficiency,
                     activeIssues: currIssues,
                     trends: {
                         deliveries: calcTrend(currDeliveries, lastDeliveries),
                         revenue: calcTrend(currRevenue, lastRevenue),
-                        efficiency: calcTrend(currEfficiency, efficiency30DaysAgo), 
+                        efficiency: calcTrend(currEfficiency, efficiencyStartOfMonth), 
                         issues: calcTrend(currIssues, lastIssues)
                     }
                 });
@@ -193,6 +211,7 @@ const Dashboard = () => {
                     value={stats.activeIssues}
                     trend={stats.trends?.issues || 0}
                     color="red"
+                    inverseTrend={true}
                 />
             </div>
 

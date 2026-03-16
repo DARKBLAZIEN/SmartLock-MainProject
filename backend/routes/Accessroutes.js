@@ -398,7 +398,8 @@ router.post("/locker/close", async (req, res) => {
 // Get all events
 router.get("/events", async (req, res) => {
   try {
-    const events = await Event.find().sort({ timestamp: -1 }).limit(100);
+    const limit = parseInt(req.query.limit) || 100;
+    const events = await Event.find().sort({ timestamp: -1 }).limit(limit);
     res.status(200).json(events);
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
