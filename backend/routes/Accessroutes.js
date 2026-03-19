@@ -177,13 +177,6 @@ router.post("/delivery", async (req, res) => {
       lockerId: freeLocker.lockerId
     });
 
-    // AUTO CLOSE AFTER 5 SECONDS
-    setTimeout(() => {
-      io.emit("closeLocker", {
-        lockerId: freeLocker.lockerId
-      });
-    }, 5000);
-
     try {
       const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -251,11 +244,6 @@ router.post("/pickup", async (req, res) => {
       lockerId: activeDelivery.lockerId
     });
 
-    setTimeout(() => {
-      io.emit("closeLocker", {
-        lockerId: activeDelivery.lockerId
-      });
-    }, 5000);
 
     const history = new PickupLog({
       apartmentId: activeDelivery.apartmentId,
@@ -351,10 +339,6 @@ router.post("/locker/open", async (req, res) => {
     const io = req.app.get("io");
     io.emit("openLocker", { lockerId });
 
-    // Auto-close after 5 seconds
-    setTimeout(() => {
-      io.emit("closeLocker", { lockerId });
-    }, 5000);
     
     await new Event({
       type: 'ADMIN_OVERRIDE',
@@ -370,6 +354,7 @@ router.post("/locker/open", async (req, res) => {
 });
 
 // Simulate closing the locker (physical action)
+// Locate this existing route and update it to this:
 router.post("/locker/close", async (req, res) => {
   try {
     const { lockerId } = req.body;
@@ -379,16 +364,17 @@ router.post("/locker/close", async (req, res) => {
     locker.isOpen = false;
     await locker.save();
 
+    // This is the CRITICAL line that tells Unity to close the door
     const io = req.app.get("io");
     io.emit("closeLocker", { lockerId });
     
     await new Event({
       type: 'CLOSE',
-      description: `Locker door closed and secured`,
+      description: `Locker door closed and secured via User Interface`,
       lockerId: lockerId
     }).save();
 
-    console.log(`[Locker Simulation] Locker ${lockerId} CLOSED and LOCKED.`);
+    console.log(`[Locker Control] Locker ${lockerId} CLOSED and LOCKED.`);
     res.status(200).json({ success: true, message: "Locker closed and locked" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
@@ -398,8 +384,7 @@ router.post("/locker/close", async (req, res) => {
 // Get all events
 router.get("/events", async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 100;
-    const events = await Event.find().sort({ timestamp: -1 }).limit(limit);
+    const events = await Event.find().sort({ timestamp: -1 }).limit(100);
     res.status(200).json(events);
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
