@@ -144,69 +144,87 @@ router.post("/register", async (req, res) => {
 router.post("/delivery", async (req, res) => {
   try {
     const { apartmentId } = req.body;
-    console.log(`[Delivery] Request for Apt: ${apartmentId}`);
-
     const apartment = await Apartment.findOne({ apartmentId });
-    if (!apartment) {
-      return res.status(404).json({ success: false, message: "Apartment not found" });
-    }
+    if (!apartment) return res.status(404).json({ success: false, message: "Apartment not found" });
 
     const freeLocker = await Locker.findOne({ isFree: true });
-    if (!freeLocker) {
-      return res.status(400).json({ success: false, message: "No lockers available" });
-    }
+    if (!freeLocker) return res.status(400).json({ success: false, message: "No lockers available" });
 
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const newLog = new DeliveryLog({
+    // Database logic
+    await new DeliveryLog({
       apartmentId: apartment.apartmentId,
       lockerId: freeLocker.lockerId,
       otp: generatedOtp,
-    });
-
-    await newLog.save();
-
+    }).save();
 
     freeLocker.isFree = false;
-    freeLocker.isOpen = true; // Simulating physical unlock
+    freeLocker.isOpen = true; 
     await freeLocker.save();
 
     const io = req.app.get("io");
-
-    io.emit("openLocker", {
-      lockerId: freeLocker.lockerId
-    });
+    io.emit("openLocker", { lockerId: freeLocker.lockerId });
 
     try {
       const mailOptions = {
-        from: process.env.EMAIL_USER,
+        from: `"SmartLock System" <${process.env.EMAIL_USER}>`,
         to: apartment.gmail,
-        subject: "Package Delivery Notification",
-        text: `Hello ${apartment.nameOfOwner}, a delivery has been placed in locker ${freeLocker.lockerId}. Your OTP is: ${generatedOtp}`,
+        subject: `📦 Package Arrived - Locker ${freeLocker.lockerId}`,
+        html: `
+          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 500px; margin: auto; padding: 0; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0;">
+            <div style="background-color: #4f46e5; padding: 25px; text-align: center;">
+              <h2 style="color: #ffffff; margin: 0; font-size: 22px;">SmartLock Notification</h2>
+            </div>
+            
+            <div style="padding: 30px; background-color: #ffffff; text-align: center;">
+              <p style="font-size: 16px; color: #475569;">Hello <strong>${apartment.nameOfOwner}</strong>,</p>
+              <p style="font-size: 15px; color: #64748b;">Your package is ready for pickup in <strong>Unit ${freeLocker.lockerId}</strong>.</p>
+              
+              <div style="margin: 30px 0; padding: 20px; background-color: #f1f5f9; border-radius: 12px;">
+                <p style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 15px;">Your One-Time Passcode</p>
+                
+                <div style="
+                  display: inline-block;
+                  background-color: #1e293b; 
+                  color: #38bdf8; 
+                  font-family: 'Courier New', monospace; 
+                  font-size: 36px; 
+                  font-weight: bold; 
+                  padding: 15px 25px; 
+                  border-radius: 8px; 
+                  letter-spacing: 6px; 
+                  border: 2px solid #38bdf8;
+                  -webkit-user-select: all; 
+                  user-select: all;
+                  cursor: pointer;
+                ">
+                  ${generatedOtp}
+                </div>
+                
+                <p style="font-size: 12px; color: #64748b; margin-top: 15px;">
+                  Tap or click the code once to select it.
+                </p>
+              </div>
+              
+              <p style="font-size: 14px; color: #64748b; line-height: 1.5;">
+                Enter this code at the terminal to unlock your compartment.
+              </p>
+            </div>
+            
+            <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+              <p>SmartLock CUSAT Project - Automated Security Notification</p>
+            </div>
+          </div>
+        `
       };
 
       await transporter.sendMail(mailOptions);
-    } catch (emailError) {
-      console.error("Email failed:", emailError.message);
-    }
+    } catch (err) { console.error(err); }
 
-    // 7. Log Event
-    await new Event({
-      type: 'DELIVERY',
-      description: `New package for ${apartment.nameOfOwner} in Locker ${freeLocker.lockerId}`,
-      lockerId: freeLocker.lockerId,
-      apartmentId: apartment.apartmentId
-    }).save();
-
-    return res.status(200).json({
-      success: true,
-      nameOfOwner: apartment.nameOfOwner,
-      lockerId: freeLocker.lockerId
-    });
-
+    return res.status(200).json({ success: true, lockerId: freeLocker.lockerId });
   } catch (error) {
-    console.error("Delivery error:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false });
   }
 });
 
@@ -232,18 +250,15 @@ router.post("/pickup", async (req, res) => {
     activeDelivery.isPickedUp = true;
     await activeDelivery.save();
 
-
     await Locker.findOneAndUpdate(
       { lockerId: activeDelivery.lockerId },
       { isFree: true, isOpen: true } // Simulating physical unlock
     );
 
     const io = req.app.get("io");
-
     io.emit("openLocker", {
       lockerId: activeDelivery.lockerId
     });
-
 
     const history = new PickupLog({
       apartmentId: activeDelivery.apartmentId,
@@ -254,12 +269,55 @@ router.post("/pickup", async (req, res) => {
 
     const apartment = await Apartment.findOne({ apartmentId });
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: apartment.gmail,
-      subject: "Package Collected",
-      text: `Hello ${apartment.nameOfOwner}, your package in locker ${activeDelivery.lockerId} has been successfully collected.`
-    });
+    // --- ENHANCED PICKUP CONFIRMATION EMAIL ---
+    try {
+      await transporter.sendMail({
+        from: `"SmartLock System" <${process.env.EMAIL_USER}>`,
+        to: apartment.gmail,
+        subject: `✅ Package Collected - Unit ${activeDelivery.lockerId}`,
+        text: `Hello ${apartment.nameOfOwner}, your package in locker ${activeDelivery.lockerId} has been successfully collected.`,
+        html: `
+          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 500px; margin: auto; padding: 0; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="background-color: #10b981; padding: 25px; text-align: center;">
+              <h2 style="color: #ffffff; margin: 0; font-size: 22px; letter-spacing: 0.5px;">Pickup Confirmed</h2>
+            </div>
+            
+            <div style="padding: 30px; background-color: #ffffff;">
+              <p style="font-size: 16px; color: #475569; margin-top: 0;">Hello <strong>${apartment.nameOfOwner}</strong>,</p>
+              <p style="font-size: 15px; color: #64748b; line-height: 1.6;">This is a confirmation that your package has been successfully retrieved from the SmartLock system.</p>
+              
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 25px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                  <span style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Locker Source :   </span>
+                  <span style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Unit ${activeDelivery.lockerId}</span>
+                </div>
+                
+                <div style="border-top: 1px solid #e2e8f0; padding-top: 15px;">
+                  <span style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 10px;">Registered Apartment</span>
+                  
+                  <div style="display: table; width: 100%; border-collapse: separate;">
+                    <div style="display: table-cell; background-color: #f1f5f9; color: #475569; font-family: 'Courier New', monospace; font-size: 20px; font-weight: bold; padding: 10px 15px; border-radius: 8px 0 0 8px; vertical-align: middle; border: 1px solid #e2e8f0;">
+                      ${apartmentId}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div style="text-align: center; padding: 10px; border-radius: 8px; background-color: #ecfdf5; border: 1px solid #d1fae5;">
+                <p style="font-size: 13px; color: #065f46; margin: 0;">Locker <strong>${activeDelivery.lockerId}</strong> is now vacant and ready for new deliveries.</p>
+              </div>
+            </div>
+            
+            <div style="background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8;">
+              <p style="margin: 0;">SmartLock CUSAT Project Team</p>
+              <p style="margin: 5px 0 0;">Thank you for using our automated services.</p>
+            </div>
+          </div>
+        `
+      });
+    } catch (emailError) {
+      console.error("Pickup Email failed:", emailError.message);
+    }
 
     // 6. Log Event
     await new Event({
