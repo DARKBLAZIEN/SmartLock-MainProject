@@ -1,9 +1,9 @@
 const express = require("express");
+const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const Apartment = require("../models/Apartment");
 const Locker = require("../models/Locker");
 const DeliveryLog = require("../models/DeliveryLog");
-const RegistrationOTP = require("../models/RegistrationOTP");
 
 const router = express.Router();
 
@@ -65,57 +65,13 @@ router.put("/locker/reset", async (req, res) => {
   }
 });
 
-// Send OTP for Register
-router.post("/register-otp", async (req, res) => {
-  try {
-    const { gmail } = req.body;
-    if (!gmail) return res.status(400).json({ success: false, message: "Email is required" });
-
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Save/Update OTP in DB
-    await RegistrationOTP.findOneAndUpdate(
-      { gmail: gmail.toLowerCase() },
-      { otp, createdAt: new Date() },
-      { upsert: true, new: true }
-    );
-
-    // Send Email
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: gmail,
-      subject: "Registration OTP for SmartLock",
-      text: `Your OTP for resident registration is: ${otp}. This code will expire in 10 minutes.`,
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log(`[Register OTP] Sent to ${gmail}: ${otp}`);
-
-    res.status(200).json({ success: true, message: "OTP sent to your email" });
-  } catch (error) {
-    console.error("Register OTP error:", error);
-    res.status(500).json({ success: false, message: "Failed to send OTP" });
-  }
-});
-
-// Register a new Apartment (Resident) - Now with OTP Verification
+// Register a new Apartment (Resident) - Admin only, no OTP required
 router.post("/register", async (req, res) => {
   try {
     console.log("Register Request Body:", req.body);
-    const { apartmentId, nameOfOwner, gmail, otp } = req.body;
+    const { apartmentId, nameOfOwner, gmail } = req.body;
 
-    if (!otp) {
-      return res.status(400).json({ success: false, message: "OTP is required" });
-    }
-
-    // 1. Verify OTP
-    const otpRecord = await RegistrationOTP.findOne({ gmail: gmail.toLowerCase() });
-    if (!otpRecord || otpRecord.otp !== otp) {
-      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
-    }
-
-    // 2. Check if Apartment ID exists
+    // Check if Apartment ID already exists
     const existing = await Apartment.findOne({ apartmentId });
     if (existing) {
       return res.status(400).json({ success: false, message: "Apartment ID already exists" });
@@ -128,10 +84,6 @@ router.post("/register", async (req, res) => {
     });
 
     await newApartment.save();
-
-    // 3. Clean up OTP
-    await RegistrationOTP.deleteOne({ gmail: gmail.toLowerCase() });
-
     res.status(201).json({ success: true, message: "Resident added successfully" });
   } catch (error) {
     console.error("Register error:", error);
@@ -162,8 +114,8 @@ router.post("/delivery", async (req, res) => {
     }
     console.log(`[Delivery] Found free locker: ${freeLocker.lockerId}`);
 
-    // 3. Generate 6-digit OTP
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    // 3. Generate cryptographically secure 6-digit OTP
+    const generatedOtp = crypto.randomInt(100000, 1000000).toString();
     console.log("********************************");
     console.log("GENERATED OTP FOR PICKUP:", generatedOtp);
     console.log("********************************");
@@ -246,14 +198,20 @@ router.post("/pickup", async (req, res) => {
     });
     await history.save();
 
-    // 5. Send Pickup Confirmation Email (Optional but recommended)
-    const apartment = await Apartment.findOne({ apartmentId });
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: apartment.gmail,
-      subject: "Package Collected",
-      text: `Hello ${apartment.nameOfOwner}, your package in locker ${activeDelivery.lockerId} has been successfully collected.`
-    });
+    // 5. Send Pickup Confirmation Email (non-blocking — email failure must not affect pickup success)
+    try {
+      const apartment = await Apartment.findOne({ apartmentId });
+      if (apartment) {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: apartment.gmail,
+          subject: "Package Collected",
+          text: `Hello ${apartment.nameOfOwner}, your package in locker ${activeDelivery.lockerId} has been successfully collected.`
+        });
+      }
+    } catch (emailError) {
+      console.error("Pickup confirmation email failed (non-fatal):", emailError.message);
+    }
 
     return res.status(200).json({
       success: true,
@@ -266,32 +224,14 @@ router.post("/pickup", async (req, res) => {
   }
 });
 
-// Update Resident
+// Update Resident - Admin only, no OTP required
 router.put("/:id", async (req, res) => {
   try {
-    const { nameOfOwner, gmail, apartmentId, otp } = req.body;
+    const { nameOfOwner, gmail, apartmentId } = req.body;
     const existingResident = await Apartment.findById(req.params.id);
     
     if (!existingResident) {
       return res.status(404).json({ success: false, message: "Resident not found" });
-    }
-
-    // Check if email is changing
-    const isEmailChanging = gmail && gmail.toLowerCase() !== existingResident.gmail.toLowerCase();
-
-    if (isEmailChanging) {
-      if (!otp) {
-        return res.status(400).json({ success: false, message: "OTP is required for email changes" });
-      }
-
-      // Verify OTP for the NEW email
-      const otpRecord = await RegistrationOTP.findOne({ gmail: gmail.toLowerCase() });
-      if (!otpRecord || otpRecord.otp !== otp) {
-        return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
-      }
-
-      // Clean up OTP after verification
-      await RegistrationOTP.deleteOne({ gmail: gmail.toLowerCase() });
     }
 
     // Update the resident

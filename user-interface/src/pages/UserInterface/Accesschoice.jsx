@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, KeyRound, ChevronRight, ShieldCheck, UserPlus } from "lucide-react";
+import { Package, KeyRound, ChevronRight, ShieldCheck } from "lucide-react";
 
 export default function AccessChoice() {
   const navigate = useNavigate();
@@ -78,6 +78,8 @@ export default function AccessChoice() {
                 <ChevronRight className="text-slate-500 group-hover:text-white" size={18} />
               </div>
             </button>
+
+
           </div>
 
           <div className="mt-10 flex flex-col items-center gap-2">

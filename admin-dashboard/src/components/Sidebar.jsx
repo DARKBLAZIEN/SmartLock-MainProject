@@ -1,8 +1,10 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Box, Users, Activity, Settings, LogOut } from 'lucide-react';
 
 const Sidebar = () => {
+    const navigate = useNavigate();
+
     const navItems = [
         { icon: LayoutDashboard, label: 'Overview', path: '/' },
         { icon: Box, label: 'Lockers', path: '/lockers' },
@@ -10,6 +12,11 @@ const Sidebar = () => {
         { icon: Activity, label: 'Events', path: '/events' },
         { icon: Settings, label: 'Settings', path: '/settings' },
     ];
+
+    const handleLogout = () => {
+        localStorage.removeItem('adminToken');
+        navigate('/login');
+    };
 
     return (
         <aside
@@ -64,7 +71,8 @@ const Sidebar = () => {
 
             <div className="p-4" style={{ borderTop: '1px solid var(--color-border)' }}>
                 <button
-                    className="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all duration-200"
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer"
                     style={{ color: 'var(--color-text-muted)' }}
                     onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; }}
                     onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}
@@ -78,3 +86,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
