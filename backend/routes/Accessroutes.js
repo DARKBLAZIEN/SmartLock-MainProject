@@ -1,4 +1,5 @@
 const express = require("express");
+const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const Apartment = require("../models/Apartment");
 const Locker = require("../models/Locker");
@@ -105,6 +106,7 @@ router.post("/register-otp", async (req, res) => {
 });
 
 // Register Apartment
+// Register a new Apartment (Resident) - Admin only, no OTP required
 router.post("/register", async (req, res) => {
   try {
     console.log("Register Request Body:", req.body);
@@ -119,6 +121,9 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
     }
 
+    const { apartmentId, nameOfOwner, gmail } = req.body;
+
+    // Check if Apartment ID already exists
     const existing = await Apartment.findOne({ apartmentId });
     if (existing) {
       return res.status(400).json({ success: false, message: "Apartment ID already exists" });
@@ -148,9 +153,17 @@ router.post("/delivery", async (req, res) => {
     if (!apartment) return res.status(404).json({ success: false, message: "Apartment not found" });
 
     const freeLocker = await Locker.findOne({ isFree: true });
-    if (!freeLocker) return res.status(400).json({ success: false, message: "No lockers available" });
+    if (!freeLocker) {
+      console.log("[Delivery] No free lockers found");
+      return res.status(400).json({ success: false, message: "No lockers available" });
+    }
+    console.log(`[Delivery] Found free locker: ${freeLocker.lockerId}`);
 
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    // 3. Generate cryptographically secure 6-digit OTP
+    const generatedOtp = crypto.randomInt(100000, 1000000).toString();
+    console.log("********************************");
+    console.log("GENERATED OTP FOR PICKUP:", generatedOtp);
+    console.log("********************************");
 
     // Database logic
     await new DeliveryLog({
@@ -160,7 +173,7 @@ router.post("/delivery", async (req, res) => {
     }).save();
 
     freeLocker.isFree = false;
-    freeLocker.isOpen = true; 
+    freeLocker.isOpen = true;
     await freeLocker.save();
 
     const io = req.app.get("io");
@@ -267,6 +280,20 @@ router.post("/pickup", async (req, res) => {
 
     await history.save();
 
+    // 5. Send Pickup Confirmation Email (non-blocking — email failure must not affect pickup success)
+    try {
+      const apartment = await Apartment.findOne({ apartmentId });
+      if (apartment) {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: apartment.gmail,
+          subject: "Package Collected",
+          text: `Hello ${apartment.nameOfOwner}, your package in locker ${activeDelivery.lockerId} has been successfully collected.`
+        });
+      }
+    } catch (emailError) {
+      console.error("Pickup confirmation email failed (non-fatal):", emailError.message);
+    }
     const apartment = await Apartment.findOne({ apartmentId });
 
     // --- ENHANCED PICKUP CONFIRMATION EMAIL ---
@@ -339,33 +366,14 @@ router.post("/pickup", async (req, res) => {
   }
 });
 
-
-// Update Resident
+// Update Resident - Admin only, no OTP required
 router.put("/:id", async (req, res) => {
   try {
-    const { nameOfOwner, gmail, apartmentId, otp } = req.body;
+    const { nameOfOwner, gmail, apartmentId } = req.body;
     const existingResident = await Apartment.findById(req.params.id);
-    
+
     if (!existingResident) {
       return res.status(404).json({ success: false, message: "Resident not found" });
-    }
-
-    // Check if email is changing
-    const isEmailChanging = gmail && gmail.toLowerCase() !== existingResident.gmail.toLowerCase();
-
-    if (isEmailChanging) {
-      if (!otp) {
-        return res.status(400).json({ success: false, message: "OTP is required for email changes" });
-      }
-
-      // Verify OTP for the NEW email
-      const otpRecord = await RegistrationOTP.findOne({ gmail: gmail.toLowerCase() });
-      if (!otpRecord || otpRecord.otp !== otp) {
-        return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
-      }
-
-      // Clean up OTP after verification
-      await RegistrationOTP.deleteOne({ gmail: gmail.toLowerCase() });
     }
 
     // Update the resident
@@ -374,7 +382,7 @@ router.put("/:id", async (req, res) => {
     existingResident.apartmentId = apartmentId || existingResident.apartmentId;
 
     await existingResident.save();
-    
+
     res.json({ success: true, resident: existingResident });
   } catch (error) {
     console.error("Update error:", error);
@@ -397,7 +405,7 @@ router.post("/locker/open", async (req, res) => {
     const io = req.app.get("io");
     io.emit("openLocker", { lockerId });
 
-    
+
     await new Event({
       type: 'ADMIN_OVERRIDE',
       description: `Locker door opened by administrator override`,
@@ -425,7 +433,7 @@ router.post("/locker/close", async (req, res) => {
     // This is the CRITICAL line that tells Unity to close the door
     const io = req.app.get("io");
     io.emit("closeLocker", { lockerId });
-    
+
     await new Event({
       type: 'CLOSE',
       description: `Locker door closed and secured via User Interface`,

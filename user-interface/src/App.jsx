@@ -15,7 +15,7 @@ export default function App() {
       <Route path="/access/delivery" element={<DeliveryAccess />} />
       <Route path="/access/pickup" element={<PickupAccess />} />
       <Route path="/access/register" element={<RegisterAccess />} />
-      
+
       {/* Simulation Status Routes */}
       <Route path="/delivery/status" element={<DeliveryStatus />} />
       <Route path="/pickup/status" element={<PickupStatus />} />
