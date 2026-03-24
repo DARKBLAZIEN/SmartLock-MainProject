@@ -110,17 +110,6 @@ router.post("/register-otp", async (req, res) => {
 router.post("/register", async (req, res) => {
   try {
     console.log("Register Request Body:", req.body);
-    const { apartmentId, nameOfOwner, gmail, otp } = req.body;
-
-    if (!otp) {
-      return res.status(400).json({ success: false, message: "OTP is required" });
-    }
-
-    const otpRecord = await RegistrationOTP.findOne({ gmail: gmail.toLowerCase() });
-    if (!otpRecord || otpRecord.otp !== otp) {
-      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
-    }
-
     const { apartmentId, nameOfOwner, gmail } = req.body;
 
     // Check if Apartment ID already exists
@@ -136,8 +125,6 @@ router.post("/register", async (req, res) => {
     });
 
     await newApartment.save();
-
-    await RegistrationOTP.deleteOne({ gmail: gmail.toLowerCase() });
 
     res.status(201).json({ success: true, message: "Resident added successfully" });
   } catch (error) {

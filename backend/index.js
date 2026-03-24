@@ -24,20 +24,11 @@ app.set("io", io);
 app.use(cors());
 app.use(express.json());
 
-// --- Global Rate Limiter (applied to all routes) ---
-// 100 requests per 15 minutes per IP
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: "Too many requests, please try again later." },
-});
-app.use(globalLimiter);
 
 // --- OTP Brute-Force Protection ---
-// Strict limiter on the pickup endpoint: max 5 attempts per 15 minutes per IP.
+// Strict limiter ONLY on the pickup endpoint: max 5 attempts per 15 minutes per IP.
 // Prevents exhaustive 6-digit OTP guessing (1,000,000 combinations).
+// Does NOT apply to admin login or delivery routes.
 const pickupLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5,                    // lock after 5 attempts
@@ -46,33 +37,6 @@ const pickupLimiter = rateLimit({
   message: { success: false, message: "Too many failed pickup attempts. Please try again in 15 minutes." },
 });
 app.use("/api/apartment/pickup", pickupLimiter);
-
-
-
-// --- Global Rate Limiter (applied to all routes) ---
-// 100 requests per 15 minutes per IP
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: "Too many requests, please try again later." },
-});
-app.use(globalLimiter);
-
-// --- OTP Brute-Force Protection ---
-// Strict limiter on the pickup endpoint: max 5 attempts per 15 minutes per IP.
-// Prevents exhaustive 6-digit OTP guessing (1,000,000 combinations).
-const pickupLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,                    // lock after 5 attempts
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: "Too many failed pickup attempts. Please try again in 15 minutes." },
-});
-app.use("/api/apartment/pickup", pickupLimiter);
-
-
 
 app.use("/api/apartment", apartmentRoutes);
 app.use("/api/admin", adminRoutes);
