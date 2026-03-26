@@ -13,7 +13,9 @@ const registrationOTPSchema = new mongoose.Schema({
     },
     otp: {
         type: String,
-        required: true
+        required: true,
+        set: (value) => value ? encryptDeterministic(value) : value,
+        get: (value) => value ? decryptDeterministic(value) : value,
     },
     createdAt: {
         type: Date,
