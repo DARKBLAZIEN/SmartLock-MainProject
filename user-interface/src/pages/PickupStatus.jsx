@@ -23,13 +23,38 @@ const PickupStatus = () => {
             return;
         }
 
-        // Simulate locker opening
-        const openTimer = setTimeout(() => {
-            setStep('OPEN');
-        }, 1500);
+        const lockerId = flowState.lockerId;
 
-        return () => clearTimeout(openTimer);
+        // --- Hardware Integration for L01 ---
+        if (lockerId === "L01" || lockerId === "L1") {
+            const initiateUnlock = async () => {
+                try {
+                    console.log(`[Hardware] Triggering physical unlock for ${lockerId}`);
+                    // Trigger the physical unlock sequence on the Raspberry Pi
+                    const result = await lockerApi.unlockPhysical();
+                    
+                    if (result.success) {
+                        setStep('OPEN');
+                        setTimeout(() => {
+                            setStep('CLOSED');
+                            setTimeout(() => setStep('COMPLETED'), 1000);
+                        }, 2000);
+                    }
+                } catch (error) {
+                    console.error("Hardware Unlock failed, falling back to simulation:", error);
+                    setTimeout(() => setStep('OPEN'), 1500);
+                }
+            };
+            initiateUnlock();
+        } else {
+            // Virtual simulation for all other lockers
+            const openTimer = setTimeout(() => {
+                setStep('OPEN');
+            }, 1500);
+            return () => clearTimeout(openTimer);
+        }
     }, [flowState, navigate]);
+
 
     const handleCloseDoor = async () => {
         console.log("Attempting to close locker:", flowState.lockerId);

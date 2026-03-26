@@ -18,6 +18,30 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// --- HARDWARE AGENT BRIDGE ---
+const triggerHardwareUnlock = async (lockerId) => {
+  // Only trigger physical hardware for L01 or L1
+  if (lockerId !== "L01" && lockerId !== "L1") {
+    console.log(`[Hardware] Skipping physical trigger for ${lockerId} (Virtual only).`);
+    return false;
+  }
+
+  const hardwareUrl = process.env.HARDWARE_AGENT_URL || "http://10.99.28.186:5001/api/hardware/unlock";
+  try {
+    console.log(`[Hardware] Triggering physical lock for unit ${lockerId}...`);
+    // Non-blocking fire-and-forget call to the Raspberry Pi
+    fetch(hardwareUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lockerId })
+    }).catch(err => console.error(`[Hardware Connection Failed] at ${hardwareUrl}:`, err.message));
+    return true;
+  } catch (err) {
+    console.error(`[Hardware Helper Error]:`, err.message);
+    return false;
+  }
+};
+
 // Get all apartments
 router.get("/", async (req, res) => {
   try {
@@ -166,6 +190,9 @@ router.post("/delivery", async (req, res) => {
     const io = req.app.get("io");
     io.emit("openLocker", { lockerId: freeLocker.lockerId });
 
+    // Physical hardware trigger
+    triggerHardwareUnlock(freeLocker.lockerId);
+
     try {
       const mailOptions = {
         from: `"SmartLock System" <${process.env.EMAIL_USER}>`,
@@ -259,6 +286,9 @@ router.post("/pickup", async (req, res) => {
     io.emit("openLocker", {
       lockerId: activeDelivery.lockerId
     });
+
+    // Physical hardware trigger
+    triggerHardwareUnlock(activeDelivery.lockerId);
 
     const history = new PickupLog({
       apartmentId: activeDelivery.apartmentId,
@@ -392,6 +422,8 @@ router.post("/locker/open", async (req, res) => {
     const io = req.app.get("io");
     io.emit("openLocker", { lockerId });
 
+    // Physical hardware trigger
+    triggerHardwareUnlock(lockerId);
 
     await new Event({
       type: 'ADMIN_OVERRIDE',
