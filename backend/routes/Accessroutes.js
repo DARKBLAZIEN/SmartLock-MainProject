@@ -26,7 +26,7 @@ const triggerHardwareUnlock = async (lockerId) => {
     return false;
   }
 
-  const hardwareUrl = process.env.HARDWARE_AGENT_URL || "http://10.99.28.186:5001/api/hardware/unlock";
+  const hardwareUrl = process.env.HARDWARE_AGENT_URL || "http://100.71.48.127:5001/api/hardware/unlock";
   try {
     console.log(`[Hardware] Triggering physical lock for unit ${lockerId}...`);
     // Non-blocking fire-and-forget call to the Raspberry Pi
